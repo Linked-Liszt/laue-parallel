@@ -3,6 +3,7 @@
 import cold
 import fire
 import numpy as np
+import os
 import logging
 from mpi4py import MPI
 import time 
@@ -80,6 +81,12 @@ def main(path, debug=False):
         ind = np.concatenate(ind)
         lau = np.concatenate(lau)
         pos = np.concatenate(pos)
+
+        if not os.path.exists(file['output'] + '/pos-' + str(scanpoint)):
+            os.mkdir(file['output'] + '/pos-' + str(scanpoint))
+
+        if not os.path.exists(file['output'] + '/lau-' + str(scanpoint)):
+            os.mkdir(file['output'] + '/lau-' + str(scanpoint))
 
         np.save(file['output'] + '/pos-' + str(scanpoint) + '/pos', pos)
         np.save(file['output'] + '/lau-' + str(scanpoint) + '/lau', lau)
