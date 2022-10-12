@@ -13,7 +13,7 @@ file:
 
 comp:
     server: 'local'
-    scannumber: 1
+    scannumber: 2
     gridsize: 8
     workers: 1
     functionid: 'd8461388-9442-4008-a5f1-2cfa112f6923'

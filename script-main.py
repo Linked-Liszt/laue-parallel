@@ -2,14 +2,16 @@
 
 import cold
 import fire
+import h5py
 import numpy as np
 import os
+import shutil
 import logging
 from mpi4py import MPI
 import time 
 import dxchange
 
-def main(path, debug=False):
+def main(path, h5_out=False, dry_run=False, debug=False):
     """Runs the reconstruction workflow given parameters 
     in a configuration file.
 
@@ -46,6 +48,9 @@ def main(path, debug=False):
 
     print(proc, size, rank, file['range'], file['frame'], scanpoint, pointer, m, n)
 
+    if dry_run:
+        exit()
+
     # Load data
     data, ind = cold.load(file)
 
@@ -58,7 +63,7 @@ def main(path, debug=False):
     #cold.saveimg(file['output'] + '/pos-' + str(rank) + '/pos', pos, ind, (2048, 2048), file['frame'])
     #cold.saveimg(file['output'] + '/lau-' + str(m) + '/lau', lau, ind, (2048, 2048), frame0, swap=True)
 
-    print (time.time() - t, lau.shape, ind.shape, pos.shape, sig.shape, dep.shape, frame0, file['frame'])
+    print (rank, time.time() - t, lau.shape, ind.shape, pos.shape, sig.shape, dep.shape, frame0, file['frame'])
 
     # the three lines below are for parallel hdf5
 #    f = h5py.File(file['output'] + 'out' + str(scanpoint) + '.hdf5', 'w', driver='mpio', comm=comm)
@@ -68,7 +73,11 @@ def main(path, debug=False):
     # this is not tested code, I had it once and tested, but deleted by mistake. Trying to retrieve it. It's saving
     # in npy, we would need to save it as hd5
     reduced = MPI.COMM_WORLD.gather([scanpoint, ind, lau, pos, sig, dep], root=0)
+
+    # Inefficent, should only bcast to pointer=0 procs
+    reduced = MPI.COMM_WORLD.bcast(reduced, root=0)
     if pointer == 0:
+
         ind = []
         lau = []
         pos = []
@@ -88,8 +97,18 @@ def main(path, debug=False):
         if not os.path.exists(file['output'] + '/lau-' + str(scanpoint)):
             os.mkdir(file['output'] + '/lau-' + str(scanpoint))
 
-        np.save(file['output'] + '/pos-' + str(scanpoint) + '/pos', pos)
-        np.save(file['output'] + '/lau-' + str(scanpoint) + '/lau', lau)
+
+        if h5_out:
+            with h5py.File(file['output'] +'/'+str(scanpoint) + '.hd5', 'w') as hf:
+                hf.create_dataset('pos', data=pos)
+                hf.create_dataset('lau',data=lau)
+        else:
+            np.save(file['output'] + '/pos-' + str(scanpoint) + '/pos', pos)
+            np.save(file['output'] + '/lau-' + str(scanpoint) + '/lau', lau)
+
+    # DEBUG
+    if rank == 0:
+        shutil.copy2(path, file['output'])
 
         # can test code in cold if it is saving ok
        # cold.saveimg(file['output'] + '/pos-' + str(scanpoint) + '/pos', pos, ind, (2048, 2048), frame0)
