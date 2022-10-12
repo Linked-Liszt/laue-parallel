@@ -11,7 +11,7 @@ from mpi4py import MPI
 import time 
 import dxchange
 
-def main(path, h5_out=False, dry_run=False, debug=False):
+def main(path, h5_out=True, dry_run=False, debug=False):
     """Runs the reconstruction workflow given parameters 
     in a configuration file.
 
@@ -39,6 +39,8 @@ def main(path, h5_out=False, dry_run=False, debug=False):
 
     scanpoint, pointer = np.divmod(rank, size // no)
     m, n = np.divmod(pointer, gr)
+
+    scan_comm = MPI.COMM_WORLD.Split(color=scanpoint, key=rank)
     
     chunkm = np.divide(file['frame'][1] - file['frame'][0], gr)
     chunkn = np.divide(file['frame'][3] - file['frame'][2], gr)
@@ -72,16 +74,14 @@ def main(path, h5_out=False, dry_run=False, debug=False):
 
     # this is not tested code, I had it once and tested, but deleted by mistake. Trying to retrieve it. It's saving
     # in npy, we would need to save it as hd5
-    reduced = MPI.COMM_WORLD.gather([scanpoint, ind, lau, pos, sig, dep], root=0)
+    reduced = scan_comm.gather([scanpoint, ind, lau, pos, sig, dep], root=0)
 
-    # Inefficent, should only bcast to pointer=0 procs
-    reduced = MPI.COMM_WORLD.bcast(reduced, root=0)
     if pointer == 0:
 
         ind = []
         lau = []
         pos = []
-        for i in range(int(size/no) * scanpoint, int(size/no) * (scanpoint + 1)):
+        for i in range(int(size/no)):
             if reduced[i][0] == scanpoint:
                 ind.append(reduced[i][1])
                 lau.append(reduced[i][2])
