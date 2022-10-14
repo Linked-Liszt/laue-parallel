@@ -5,7 +5,7 @@ file:
     output: '/projects/APSDataAnalysis/mprince/lau/output'
     range: [1, 401, 1]
     threshold: 0 # [readout values]
-    frame: [1000, 1064, 1000, 1064] # [pixels]
+    frame: [1000, 1003, 1000, 1003] # [pixels]
     ext: 'h5'
     stacked: True
     h5:
@@ -14,7 +14,7 @@ file:
 comp:
     server: 'local'
     scannumber: 1
-    gridsize: 8
+    gridsize: 3
     workers: 1
     h5parallel: false
     functionid: 'd8461388-9442-4008-a5f1-2cfa112f6923'
