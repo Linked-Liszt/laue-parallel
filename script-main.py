@@ -43,17 +43,16 @@ def main(path, dry_run=False, debug=False, log_time=False):
     rank = comm.Get_rank()
     size = comm.Get_size()
 
+    # Read parameters from the config file
+    file, comp, geo, algo = cold.config(path)
+
     if log_time:
         setup_start_time = datetime.datetime.now()
         time_data = {}
         time_dir = os.path.join(file['output'], 'time_logs')
         if rank == 0:
             if not os.path.exists(time_dir):
-                os.path.mkdir(time_dir)
-
-
-    # Read parameters from the config file
-    file, comp, geo, algo = cold.config(path)
+                os.mkdir(time_dir)
     
     no = comp['scannumber']
     gr = comp['gridsize']
@@ -106,7 +105,7 @@ def main(path, dry_run=False, debug=False, log_time=False):
     if log_time:
         write_start_time = datetime.datetime.now()
 
-    if comp['h5_parallel']:
+    if comp['h5parallel']:
         f = h5py.File(file['output'] + 'out' + str(scanpoint) + '.hdf5', 'w', driver='mpio', comm=comm)
         dset = f.create_dataset('lau', (lau.shape[0] * int(size/no), lau.shape[1]), dtype=float)
         dset[pointer * lau.shape[0] : (pointer + 1) * lau.shape[0], :] = lau
@@ -142,7 +141,7 @@ def main(path, dry_run=False, debug=False, log_time=False):
     if log_time:
         time_data['write_time'] = (datetime.datetime.now() - write_start_time).total_seconds()
         with open(os.path.join(time_dir, f'proc_{rank}.json'), 'w') as time_f:
-            json.dump(time_f, time_data)
+            json.dump(time_data, time_f)
 
     if rank == 0:
         shutil.copy2(path, file['output'])

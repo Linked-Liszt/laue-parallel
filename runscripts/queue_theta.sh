@@ -1,0 +1,1 @@
+qsub -n 2 -t 60 -A APSDataAnalysis -q debug-flat-quad runscripts/run_theta.sh

@@ -1,1 +1,4 @@
 *.swp
+*.cobaltlog
+*.error
+*.output
