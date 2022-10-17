@@ -2,3 +2,4 @@
 *.cobaltlog
 *.error
 *.output
+.loglogin

@@ -13,7 +13,7 @@ file:
 
 comp:
     server: 'local'
-    scannumber: 1
+    scannumber: 2
     gridsize: 3
     workers: 1
     h5parallel: false

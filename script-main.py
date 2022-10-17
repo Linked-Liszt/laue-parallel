@@ -58,7 +58,7 @@ def main(path, dry_run=False, debug=False, log_time=False):
     gr = comp['gridsize']
 
     scanpoint, pointer = np.divmod(rank, size // no)
-    m, n = np.divmod(pointer, gr)
+    m, n = np.divmod(pointer % (gr ** 2), gr)
 
     scan_comm = MPI.COMM_WORLD.Split(color=scanpoint, key=rank)
     
@@ -69,6 +69,10 @@ def main(path, dry_run=False, debug=False, log_time=False):
     file['frame'] = [int(file['frame'][0] + m * chunkm), int(file['frame'][0] + (m + 1) * chunkm), int(file['frame'][2] + n * chunkn), int(file['frame'][2] + (n + 1) * chunkm)]
 
     print(proc, size, rank, file['range'], file['frame'], scanpoint, pointer, m, n)
+
+    valid_num_procs = (gr ** 2) * no 
+    if valid_num_procs != size:
+        raise ValueError(f"Incorrect number of procs assigned! Procs must equal gridsize^2 * scannumber. Num proces expected: {valid_num_procs}")
 
     if log_time:
         time_data['setup_time'] = (datetime.datetime.now() - setup_start_time).total_seconds()
