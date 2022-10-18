@@ -20,6 +20,6 @@ echo "NUM_OF_NODES= ${NNODES} TOTAL_NUM_RANKS= ${NTOTRANKS} RANKS_PER_NODE= ${NR
 
 mpiexec -n ${NTOTRANKS} --ppn ${NRANKS_PER_NODE} --depth=${NDEPTH} --cpu-bind depth --env OMP_NUM_THREADS=${NTHREADS} -env OMP_PLACES=threads \
     /eagle/projects/APSDataAnalysis/mprince/lau_env_polaris/bin/python \
-    /eagle/projects/APSDataAnalysis/mprince/lau/laue-parallel/script-main.py \
+    /eagle/projects/APSDataAnalysis/mprince/lau/laue-parallel/laue_parallel.py \
     /eagle/projects/APSDataAnalysis/mprince/lau/laue-parallel/configs/config-64.yml \
     --log_time 

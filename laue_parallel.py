@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-
 import cold
-import fire
 import h5py
 import numpy as np
 import os
@@ -9,6 +7,37 @@ import shutil
 import json
 from mpi4py import MPI
 import datetime
+import argparse
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description='Script to perform a parallel coded aperture post-processing.'
+    )
+    parser.add_argument(
+        'config_path',
+        help='path to .yaml cold configuration'
+    )
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        help='enables cold debug'
+    )
+    parser.add_argument(
+        '--dry_run',
+        action='store_true',
+        help='prints cold grid allocations and terminates run before processing'
+    )
+    parser.add_argument(
+        '--log_time',
+        action='store_true',
+        help='enable time logging into time_logs output dir'
+    )
+    parser.add_argument(
+        '--h5_backup',
+        action='store_true',
+        help='enable backup of individual proc data into a new h5_backup output dir'
+    )
+    return parser.parse_args()
 
 def time_wrap(func, time_data, time_key):
     """
@@ -23,18 +52,10 @@ def time_wrap(func, time_data, time_key):
     return wrap
 
 
-def main(path, dry_run=False, debug=False, log_time=False, h5_backup=False):
-    """Runs the reconstruction workflow given parameters 
-    in a configuration file.
 
-    Parameters
-    ----------
-    path: string
-        Path of the YAML file with configuration parameters.
-
-    Returns
-    -------
-        None
+def parallel_laue(path, dry_run=False, debug=False, log_time=False, h5_backup=False):
+    """
+    Run cold processing in parallel.
     """
 
     # Log host name and rank
@@ -107,12 +128,13 @@ def main(path, dry_run=False, debug=False, log_time=False, h5_backup=False):
     if log_time:
         write_start_time = datetime.datetime.now()
 
+    if h5_backup:
+        with h5py.File(os.path.join(h5_backup_dir, f'{scanpoint}_{pointer}.hd5'), 'w') as hf:
+            hf.create_dataset('pos', data=pos)
+            hf.create_dataset('lau', data=lau)
+
     if comp['h5parallel']:
         print(f'h5 write: {rank}, {pointer * lau.shape[0]}, {(pointer + 1) * lau.shape[0]}, {lau.shape}')
-        if h5_backup:
-            with h5py.File(os.path.join(h5_backup_dir, f'{scanpoint}_{pointer}.hd5'), 'w') as hf:
-                hf.create_dataset('pos', data=pos)
-                hf.create_dataset('lau', data=lau)
         scan_comm.Barrier()
         with h5py.File(os.path.join(file['output'], f'out{scanpoint}.hdf5'), 'w', driver='mpio', comm=scan_comm) as h5_f:
             dset_lau = h5_f.create_dataset('lau', (lau.shape[0] * int(size/no), lau.shape[1]), dtype=float)
@@ -155,4 +177,10 @@ def main(path, dry_run=False, debug=False, log_time=False, h5_backup=False):
 
 
 if __name__ == '__main__':
-    fire.Fire(main)
+    args = parse_args()
+    parallel_laue(
+        path=args.config_path, 
+        dry_run=args.dry_run, 
+        debug=args.debug, 
+        log_time=args.log_time, 
+        h5_backup=args.h5_backup)
