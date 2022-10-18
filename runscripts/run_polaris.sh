@@ -7,11 +7,19 @@
 #PBS -A APSDataAnalysis
 
 # Change to working directory
+
+# Could change backend to fix parallel error
+#module unload cray-mpich
+#module unload craype-network-ofi
+#module load craype-network-ucx
+#module load cray-mpich-ucx
+
+
 cd ${PBS_O_WORKDIR}
 
 # MPI and OpenMP settings
 NNODES=`wc -l < $PBS_NODEFILE`
-NRANKS_PER_NODE=32
+NRANKS_PER_NODE=16
 NDEPTH=2
 NTHREADS=2
 
@@ -21,6 +29,6 @@ echo "NUM_OF_NODES= ${NNODES} TOTAL_NUM_RANKS= ${NTOTRANKS} RANKS_PER_NODE= ${NR
 mpiexec -n ${NTOTRANKS} --ppn ${NRANKS_PER_NODE} --depth=${NDEPTH} --cpu-bind depth --env OMP_NUM_THREADS=${NTHREADS} -env OMP_PLACES=threads \
     /eagle/projects/APSDataAnalysis/mprince/lau_env_polaris/bin/python \
     /eagle/projects/APSDataAnalysis/mprince/lau/laue-parallel/laue_parallel.py \
-    /eagle/projects/APSDataAnalysis/mprince/lau/laue-parallel/configs/config-256.yml \
+    /eagle/projects/APSDataAnalysis/mprince/lau/laue-parallel/configs/config-full.yml \
     --log_time \
     --h5_backup
