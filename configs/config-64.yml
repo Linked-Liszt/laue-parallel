@@ -1,8 +1,8 @@
 ver: 1.0
 
 file:
-    path: '/projects/APSDataAnalysis/doga/laue/data/Al30_thick_maskS1_Z'
-    output: '/projects/APSDataAnalysis/mprince/lau/output'
+    path: '/eagle/APSDataAnalysis/mprince/lau/data/Al30_thick_maskS1_Z'
+    output: '/eagle/APSDataAnalysis/mprince/lau/output'
     range: [1, 401, 1]
     threshold: 0 # [readout values]
     frame: [1000, 1064, 1000, 1064] # [pixels]
@@ -16,12 +16,12 @@ comp:
     scannumber: 1
     gridsize: 8
     workers: 1
-    h5parallel: false
+    h5parallel: True 
     functionid: 'd8461388-9442-4008-a5f1-2cfa112f6923'
 
 geo:
     mask: 
-        path: '/projects/APSDataAnalysis/doga/laue/codes/code-debruijn-2-8-000.npy'
+        path: '/eagle/APSDataAnalysis/mprince/lau/data/geo/code-debruijn-2-8-000.npy'
         bitsizes: [15, 7.5] # [mu]
         thickness: 4.6 # [mu]
         resolution: 0.5
