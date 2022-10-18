@@ -5,7 +5,7 @@ file:
     output: '/eagle/APSDataAnalysis/mprince/lau/output'
     range: [1, 401, 1]
     threshold: 0 # [readout values]
-    frame: [1000, 1064, 1000, 1064] # [pixels]
+    frame: [1000, 1256, 1000, 1256] # [pixels]
     ext: 'h5'
     stacked: True
     h5:
