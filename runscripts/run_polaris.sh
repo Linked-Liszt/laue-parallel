@@ -6,15 +6,13 @@
 #PBS -q debug
 #PBS -A APSDataAnalysis
 
-# Change to working directory
-
 # Could change backend to fix parallel error
 #module unload cray-mpich
 #module unload craype-network-ofi
 #module load craype-network-ucx
 #module load cray-mpich-ucx
 
-
+# Change to working directory
 cd ${PBS_O_WORKDIR}
 
 # MPI and OpenMP settings
