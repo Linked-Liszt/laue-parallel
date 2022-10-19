@@ -1,2 +1,2 @@
-NUM_NODES=16
-qsub -A APSDataAnalysis -q prod -l select=${NUM_NODES}:system=polaris -l walltime=4:30:00 -l filesystems=home:eagle -l place=scatter /eagle/projects/APSDataAnalysis/mprince/lau/laue-parallel/runscripts/run_polaris_prod.sh
+NUM_NODES=32
+qsub -A APSDataAnalysis -q prod -l select=${NUM_NODES}:system=polaris -l walltime=2:00:00 -l filesystems=home:eagle -l place=scatter /eagle/projects/APSDataAnalysis/mprince/lau/laue-parallel/runscripts/run_polaris_prod.sh
