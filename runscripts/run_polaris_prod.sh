@@ -17,7 +17,7 @@ cd ${PBS_O_WORKDIR}
 
 # MPI and OpenMP settings
 NNODES=`wc -l < $PBS_NODEFILE`
-NRANKS_PER_NODE=16
+NRANKS_PER_NODE=32
 NDEPTH=2
 NTHREADS=2
 
@@ -29,4 +29,5 @@ mpiexec -n ${NTOTRANKS} --ppn ${NRANKS_PER_NODE} --depth=${NDEPTH} --cpu-bind de
     /eagle/projects/APSDataAnalysis/mprince/lau/laue-parallel/laue_parallel.py \
     /eagle/projects/APSDataAnalysis/mprince/lau/laue-parallel/configs/config-full.yml \
     --log_time \
-    --h5_backup
+    --h5_backup \
+    --disable_recon

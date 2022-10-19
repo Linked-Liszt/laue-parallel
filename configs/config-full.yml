@@ -2,7 +2,7 @@ ver: 1.0
 
 file:
     path: '/eagle/APSDataAnalysis/mprince/lau/data/Al30_thick_maskS1_Z'
-    output: '/eagle/APSDataAnalysis/mprince/lau/output'
+    output: '/eagle/APSDataAnalysis/mprince/lau/output_prod'
     range: [1, 401, 1]
     threshold: 0 # [readout values]
     frame: [0, 2048, 0, 2048] # [pixels]
@@ -13,9 +13,9 @@ file:
 
 comp:
     server: 'local'
-    scanstart: 0
+    scanstart: 1
     scannumber: 1
-    gridsize: 16
+    gridsize: 32
     workers: 1
     h5parallel: False
     functionid: 'd8461388-9442-4008-a5f1-2cfa112f6923'

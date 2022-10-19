@@ -29,4 +29,5 @@ mpiexec -n ${NTOTRANKS} --ppn ${NRANKS_PER_NODE} --depth=${NDEPTH} --cpu-bind de
     /eagle/projects/APSDataAnalysis/mprince/lau/laue-parallel/laue_parallel.py \
     /eagle/projects/APSDataAnalysis/mprince/lau/laue-parallel/configs/config-64.yml \
     --log_time \
-    --h5_backup
+    --h5_backup \
+    --disable_recon

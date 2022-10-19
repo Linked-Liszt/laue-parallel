@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from faulthandler import disable
 import cold
 import h5py
 import numpy as np
@@ -15,27 +16,32 @@ def parse_args():
     )
     parser.add_argument(
         'config_path',
-        help='path to .yaml cold configuration'
+        help='Path to .yaml cold configuration'
     )
     parser.add_argument(
         '--debug',
         action='store_true',
-        help='enables cold debug'
+        help='Enables cold debug'
     )
     parser.add_argument(
         '--dry_run',
         action='store_true',
-        help='prints cold grid allocations and terminates run before processing'
+        help='Prints cold grid allocations and terminates run before processing'
     )
     parser.add_argument(
         '--log_time',
         action='store_true',
-        help='enable time logging into time_logs output dir'
+        help='Enable time logging into time_logs output dir'
     )
     parser.add_argument(
         '--h5_backup',
         action='store_true',
-        help='enable backup of individual proc data into a new h5_backup output dir'
+        help='Enable backup of individual proc data into a new h5_backup output dir'
+    )
+    parser.add_argument(
+        '--disable_recon',
+        action='store_true',
+        help='Disable in-script reconstruction. Also forces h5 backup'
     )
     return parser.parse_args()
 
@@ -53,8 +59,27 @@ def time_wrap(func, time_data, time_key):
     return wrap
 
 
+def compute_absloute_ind(im_dim, num_splits, rank):
+    """
+    Compute a grid of absolute indexes of the frame of a given 
+    rank. Returns a (grid_size ** 2, 2) array of indices 
+    """
+    grid_size = im_dim // num_splits
 
-def parallel_laue(comm, path, dry_run=False, debug=False, log_time=False, h5_backup=False):
+    start_x, start_y = np.divmod(rank % (num_splits ** 2), num_splits)
+    start_x *= grid_size
+    start_y *= grid_size
+
+    ind_rows = []
+    for i in range(start_x, start_x + grid_size):
+        ind_rows.append(np.column_stack(
+            (np.full(grid_size, i),
+            np.arange(start_y, start_y + grid_size))
+        ))
+    return np.concatenate(ind_rows)
+
+
+def parallel_laue(comm, path, dry_run=False, debug=False, log_time=False, h5_backup=False, disable_recon=False):
     """
     Run cold processing in parallel.
     """
@@ -129,16 +154,16 @@ def parallel_laue(comm, path, dry_run=False, debug=False, log_time=False, h5_bac
     if log_time:
         write_start_time = datetime.datetime.now()
 
-    if h5_backup:
+    if h5_backup or disable_recon:
         with h5py.File(os.path.join(h5_backup_dir, f'{scanpoint}_{pointer}.hd5'), 'w') as hf:
             hf.create_dataset('pos', data=pos)
             hf.create_dataset('sig', data=sig)
             hf.create_dataset('ind', data=ind)
             hf.create_dataset('lau', data=lau)
+            hf.create_dataset('frame', data=file['frame'])
         print(f'Proc {rank} finished backup')
-        comm.Barrier() # Inefficient, but guarantee data safety
 
-    if comp['h5parallel']:
+    if comp['h5parallel'] and not disable_recon:
         #TODO: Reshape on IND. 
         print(f'H5 parallel write: {rank}: {pointer * lau.shape[0]}, {(pointer + 1) * lau.shape[0]}, {lau.shape}')
         scan_comm.Barrier()
@@ -150,35 +175,48 @@ def parallel_laue(comm, path, dry_run=False, debug=False, log_time=False, h5_bac
             dset_pos[pointer * pos.shape[0] : (pointer + 1) * pos.shape[0]] = pos
 
 
-    else:
+    elif not disable_recon:
         print(f'Proc {rank} beginning interative recon')
         reduced = comm.gather([scanpoint, ind, lau, pos, sig, dep], root=0)
 
         if pointer == 0:
-
-            ind = []
+            sig = []
             lau = []
             pos = []
             for i in range(int(size/no)):
                 if reduced[i][0] == scanpoint:
-                    ind.append(reduced[i][1])
+                    sig.append(reduced[i][4])
                     lau.append(reduced[i][2])
                     pos.append(reduced[i][3])
 
-            ind = np.concatenate(ind)
+            sig = np.concatenate(sig)
             lau = np.concatenate(lau)
             pos = np.concatenate(pos)
             
-            # They need to be reshaped before saving
-            pos = cold.expand(pos, ind, (2048, 2048))
-            lau = cold.expand(lau, ind, (2048, 2048))
-            lau = np.swapaxes(lau, 0, 2)
-            lau = np.swapaxes(lau, 1, 2)
+            ind_full = []
+            im_dim = frame0[1] - frame0[0] # MUST BE SQUARE
+            for i in range(gr ** 2):
+                ind_full.append(compute_absloute_ind(im_dim, gr, i))
+            ind_full = np.concatenate(ind_full)
+
+            lau_reshape = np.zeros((im_dim, im_dim, lau.shape[1]))
+            pos_reshape = np.zeros((im_dim, im_dim))
+            sig_reshape = np.zeros((im_dim, im_dim), sig.shape([1]))
+
+            for i in range(lau.shape[0]):
+                lau_reshape[ind_full[i][0], ind_full[i][1], :] = lau[i]
+                pos_reshape[ind_full[i][0], ind_full[i][1]] = pos[i]
+                sig_reshape[ind_full[i][0], ind_full[i][1], :] = sig[i]
+
+            lau_reshape = np.swapaxes(lau_reshape, 0, 2)
+            lau_reshape = np.swapaxes(lau_reshape, 1, 2)
+            sig_reshape = np.swapaxes(sig_reshape, 0, 2)
+            sig_reshape = np.swapaxes(sig_reshape, 1, 2)
 
             with h5py.File(file['output'] +'/'+str(scanpoint) + '.hd5', 'w') as hf:
-                hf.create_dataset('pos', data=pos)
-                hf.create_dataset('lau', data=lau)
-                hf.create_dataset('ind', data=ind)
+                hf.create_dataset('pos', data=pos_reshape)
+                hf.create_dataset('lau', data=lau_reshape)
+                hf.create_dataset('sig', data=sig_reshape)
 
     if log_time:
         time_data['write_time'] = (datetime.datetime.now() - write_start_time).total_seconds()
@@ -200,7 +238,9 @@ if __name__ == '__main__':
             dry_run=args.dry_run, 
             debug=args.debug, 
             log_time=args.log_time, 
-            h5_backup=args.h5_backup)
+            h5_backup=args.h5_backup,
+            disable_recon=args.disable_recon)
     except Exception as e:
-        print(e)
+        with open('err.log', 'a+') as err_f:
+            err_f.write(str(e)) # MPI term output can break.
         comm.Abort(1) # Term run early to prevent hang.
