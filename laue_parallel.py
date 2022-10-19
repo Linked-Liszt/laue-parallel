@@ -39,6 +39,7 @@ def parse_args():
     )
     return parser.parse_args()
 
+
 def time_wrap(func, time_data, time_key):
     """
     Timing decorator to log the timing of various operations. 
@@ -53,14 +54,13 @@ def time_wrap(func, time_data, time_key):
 
 
 
-def parallel_laue(path, dry_run=False, debug=False, log_time=False, h5_backup=False):
+def parallel_laue(comm, path, dry_run=False, debug=False, log_time=False, h5_backup=False):
     """
     Run cold processing in parallel.
     """
 
     # Log host name and rank
     proc = MPI.Get_processor_name()
-    comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     size = comm.Get_size()
 
@@ -81,6 +81,7 @@ def parallel_laue(path, dry_run=False, debug=False, log_time=False, h5_backup=Fa
             if not os.path.exists(h5_backup_dir):
                 os.mkdir(h5_backup_dir)
     
+    scan_start = comp['scanstart']
     no = comp['scannumber']
     gr = comp['gridsize']
 
@@ -92,7 +93,7 @@ def parallel_laue(path, dry_run=False, debug=False, log_time=False, h5_backup=Fa
     chunkm = np.divide(file['frame'][1] - file['frame'][0], gr)
     chunkn = np.divide(file['frame'][3] - file['frame'][2], gr)
     frame0 = file['frame']
-    file['range'] = [int(scanpoint * file['range'][1]), int((scanpoint + 1) * file['range'][1]), 1]
+    file['range'] = [int((scan_start + scanpoint) * file['range'][1]), int((scan_start + scanpoint + 1) * file['range'][1]), 1]
     file['frame'] = [int(file['frame'][0] + m * chunkm), int(file['frame'][0] + (m + 1) * chunkm), int(file['frame'][2] + n * chunkn), int(file['frame'][2] + (n + 1) * chunkm)]
 
     print(proc, size, rank, file['range'], file['frame'], scanpoint, pointer, m, n)
@@ -132,9 +133,11 @@ def parallel_laue(path, dry_run=False, debug=False, log_time=False, h5_backup=Fa
         with h5py.File(os.path.join(h5_backup_dir, f'{scanpoint}_{pointer}.hd5'), 'w') as hf:
             hf.create_dataset('pos', data=pos)
             hf.create_dataset('lau', data=lau)
+        print(f'Proc {rank} finished backup')
+        comm.Barrier() # Inefficient, but guarantee data safety
 
     if comp['h5parallel']:
-        print(f'h5 write: {rank}, {pointer * lau.shape[0]}, {(pointer + 1) * lau.shape[0]}, {lau.shape}')
+        print(f'H5 parallel write: {rank}: {pointer * lau.shape[0]}, {(pointer + 1) * lau.shape[0]}, {lau.shape}')
         scan_comm.Barrier()
         with h5py.File(os.path.join(file['output'], f'out{scanpoint}.hdf5'), 'w', driver='mpio', comm=scan_comm) as h5_f:
             dset_lau = h5_f.create_dataset('lau', (lau.shape[0] * int(size/no), lau.shape[1]), dtype=float)
@@ -145,7 +148,8 @@ def parallel_laue(path, dry_run=False, debug=False, log_time=False, h5_backup=Fa
 
 
     else:
-        reduced = scan_comm.gather([scanpoint, ind, lau, pos, sig, dep], root=0)
+        print(f'Proc {rank} beginning interative recon')
+        reduced = comm.gather([scanpoint, ind, lau, pos, sig, dep], root=0)
 
         if pointer == 0:
 
@@ -178,9 +182,15 @@ def parallel_laue(path, dry_run=False, debug=False, log_time=False, h5_backup=Fa
 
 if __name__ == '__main__':
     args = parse_args()
-    parallel_laue(
-        path=args.config_path, 
-        dry_run=args.dry_run, 
-        debug=args.debug, 
-        log_time=args.log_time, 
-        h5_backup=args.h5_backup)
+    comm = MPI.COMM_WORLD
+    try:
+        parallel_laue(
+            comm=comm,
+            path=args.config_path, 
+            dry_run=args.dry_run, 
+            debug=args.debug, 
+            log_time=args.log_time, 
+            h5_backup=args.h5_backup)
+    except Exception as e:
+        print(e)
+        comm.Abort(1) # Term run early to prevent hang.

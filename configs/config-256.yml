@@ -13,6 +13,7 @@ file:
 
 comp:
     server: 'local'
+    scanstart: 0
     scannumber: 1
     gridsize: 8
     workers: 1
