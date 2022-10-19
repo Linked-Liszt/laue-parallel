@@ -132,11 +132,14 @@ def parallel_laue(comm, path, dry_run=False, debug=False, log_time=False, h5_bac
     if h5_backup:
         with h5py.File(os.path.join(h5_backup_dir, f'{scanpoint}_{pointer}.hd5'), 'w') as hf:
             hf.create_dataset('pos', data=pos)
+            hf.create_dataset('sig', data=sig)
+            hf.create_dataset('ind', data=ind)
             hf.create_dataset('lau', data=lau)
         print(f'Proc {rank} finished backup')
         comm.Barrier() # Inefficient, but guarantee data safety
 
     if comp['h5parallel']:
+        #TODO: Reshape on IND. 
         print(f'H5 parallel write: {rank}: {pointer * lau.shape[0]}, {(pointer + 1) * lau.shape[0]}, {lau.shape}')
         scan_comm.Barrier()
         with h5py.File(os.path.join(file['output'], f'out{scanpoint}.hdf5'), 'w', driver='mpio', comm=scan_comm) as h5_f:
@@ -175,6 +178,7 @@ def parallel_laue(comm, path, dry_run=False, debug=False, log_time=False, h5_bac
             with h5py.File(file['output'] +'/'+str(scanpoint) + '.hd5', 'w') as hf:
                 hf.create_dataset('pos', data=pos)
                 hf.create_dataset('lau', data=lau)
+                hf.create_dataset('ind', data=ind)
 
     if log_time:
         time_data['write_time'] = (datetime.datetime.now() - write_start_time).total_seconds()
