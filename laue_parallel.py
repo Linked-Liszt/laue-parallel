@@ -165,10 +165,16 @@ def parallel_laue(comm, path, dry_run=False, debug=False, log_time=False, h5_bac
             ind = np.concatenate(ind)
             lau = np.concatenate(lau)
             pos = np.concatenate(pos)
+            
+            # They need to be reshaped before saving
+            pos = cold.expand(pos, ind, (2048, 2048))
+            lau = cold.expand(lau, ind, (2048, 2048))
+            lau = np.swapaxes(lau, 0, 2)
+            lau = np.swapaxes(lau, 1, 2)
 
             with h5py.File(file['output'] +'/'+str(scanpoint) + '.hd5', 'w') as hf:
                 hf.create_dataset('pos', data=pos)
-                hf.create_dataset('lau',data=lau)
+                hf.create_dataset('lau', data=lau)
 
     if log_time:
         time_data['write_time'] = (datetime.datetime.now() - write_start_time).total_seconds()
