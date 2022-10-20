@@ -5,11 +5,10 @@ import argparse
 import os
 import numpy as np
 from tqdm import tqdm
+import math
 
-LAU_PATH = 'lau'
-POS_PATH = 'pos'
+DATASETS = ['lau', 'pos', 'sig', 'ind']
 IM_DIM = 2048
-NUM_SPLITS = 16
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -36,20 +35,34 @@ def reconstruct_backup(backup_dir, scan_no):
     max_proc += 1
     print(f'Found max rank: {max_proc}')
 
+    dims = {}
+    avail_datasets = []
     with h5py.File(os.path.join(backup_dir, f'{scan_no}_0.hd5'), 'r') as h5_f:
-        lau_dim = h5_f[LAU_PATH].shape
-        pos_dim = h5_f[POS_PATH].shape
+        for ds_path in DATASETS:
+            if ds_path in h5_f:
+                dims[ds_path] = h5_f[ds_path].shape
+                avail_datasets.append(ds_path)
     
     out_dir = os.path.join(os.sep.join(backup_dir.split(os.sep)[:-2]), 'recon')
     
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
 
-    lau = np.zeros((lau_dim[0] * max_proc, lau_dim[1]))
-    pos = np.zeros((pos_dim[0] * max_proc,))
+    raw_ds = {}
+    for ds_path in avail_datasets:
+        if len(dims[ds_path]) == 1:
+            raw_ds[ds_path ]= np.zeros((dims[ds_path][0] * max_proc,))
+        
+        elif len(dims[ds_path]) == 2:
+            raw_ds[ds_path]= np.zeros((dims[ds_path][0] * max_proc, dims[ds_path][1]))
+
+        else:
+            raise NotImplementedError(f'New dim! {len(dims[ds_path])}')
+
 
     print('Constructing ind')
-    num_splits = NUM_SPLITS
+    num_splits = int(math.sqrt(max_proc))
+    print(f'Calculated {num_splits} splits')
     grid_size = IM_DIM // num_splits
 
     assert (IM_DIM % num_splits) == 0
@@ -74,25 +87,41 @@ def reconstruct_backup(backup_dir, scan_no):
     print('Gathering proc data')
     for i in tqdm(range(max_proc)):
         with h5py.File(os.path.join(backup_dir, f'0_{i}.hd5'), 'r') as h5_f_in:
-            lau[i * lau_dim[0] : (i + 1) * lau_dim[0], :] = np.array(h5_f_in[LAU_PATH])
-            pos[i * pos_dim[0] : (i + 1) * pos_dim[0]] = np.array(h5_f_in[POS_PATH])
+            for ds_path in avail_datasets:
+                if len(dims[ds_path]) == 1:
+                    raw_ds[ds_path][i * dims[ds_path][0] : (i + 1) * dims[ds_path][0]] = np.array(h5_f_in[ds_path])
+
+                elif len(dims[ds_path]) == 2:
+                    raw_ds[ds_path][i * dims[ds_path][0] : (i + 1) * dims[ds_path][0], :] = np.array(h5_f_in[ds_path])
     
-    lau_reshape = np.zeros((IM_DIM, IM_DIM, lau_dim[1]))
-    pos_reshape = np.zeros((IM_DIM, IM_DIM))
+    reshapes = {}
+    for ds_path in avail_datasets:
+        if len(dims[ds_path]) == 1:
+            reshapes[ds_path]= np.zeros((IM_DIM, IM_DIM))
+
+        elif len(dims[ds_path]) == 2:
+            reshapes[ds_path] = np.zeros((IM_DIM, IM_DIM, dims[ds_path][1]))
+
 
     print('Starting reshape placement')
     #TODO: Could be done faster with broadcast
-    for i in tqdm(range(lau.shape[0])):
-        lau_reshape[ind[i][0], ind[i][1], :] = lau[i]
-        pos_reshape[ind[i][0], ind[i][1]] = pos[i]
+    for i in tqdm(range(raw_ds[avail_datasets[0]].shape[0])):
+        for ds_path in avail_datasets:
+            if len(dims[ds_path]) == 1:
+                reshapes[ds_path][ind[i][0], ind[i][1]] = raw_ds[ds_path][i]
+            
+            elif len(dims[ds_path]) == 2:
+                reshapes[ds_path][ind[i][0], ind[i][1], :] = raw_ds[ds_path][i]
 
-    lau_reshape = np.swapaxes(lau_reshape, 0, 2)
-    lau_reshape = np.swapaxes(lau_reshape, 1, 2)
+    for ds_path in avail_datasets:
+        if len(dims[ds_path]) == 2:
+            reshapes[ds_path] = np.swapaxes(reshapes[ds_path], 0, 2)
+            reshapes[ds_path] = np.swapaxes(reshapes[ds_path], 1, 2)
 
     print('Writing out')
     with h5py.File(os.path.join(out_dir, f'{scan_no}_recon.hd5'), 'w') as h5_f_out:
-        h5_f_out.create_dataset('lau', data=lau_reshape)
-        h5_f_out.create_dataset('pos', data=pos_reshape)
+        for ds_path in avail_datasets:
+            h5_f_out.create_dataset(ds_path, data=reshapes[ds_path])
 
 if __name__ == '__main__':
     args = parse_args()
