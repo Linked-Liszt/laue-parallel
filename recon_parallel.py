@@ -24,7 +24,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def reconstruct_backup(backup_dir, out_dir, scan_no, im_dim):
+def reconstruct_backup(backup_dir, out_dir, scan_no, im_dim, im_num):
     max_proc = -1
     for fp in os.listdir(backup_dir):
         rank = int(fp.split('_')[1].split('.')[0])
@@ -114,7 +114,7 @@ def reconstruct_backup(backup_dir, out_dir, scan_no, im_dim):
             reshapes[ds_path] = np.swapaxes(reshapes[ds_path], 1, 2)
 
     print('Writing out')
-    with h5py.File(os.path.join(out_dir, f'{scan_no}_recon.hd5'), 'w') as h5_f_out:
+    with h5py.File(os.path.join(out_dir, f'im_{im_num}_r{scan_no}.hd5'), 'w') as h5_f_out:
         for ds_path in avail_datasets:
             h5_f_out.create_dataset(ds_path, data=reshapes[ds_path])
 
@@ -136,11 +136,14 @@ def recon_from_config(comm, config_fp):
             os.mkdir(recon_out_dir)
     comm.Barrier()
 
+    im_num = mpi_rank + conf_comp['scanstart']
+
     if mpi_rank < conf_comp['scannumber']:
         reconstruct_backup(proc_dump_dir, 
                            recon_out_dir,
                            mpi_rank,
-                           dim_y)
+                           dim_y,
+                           im_num)
 
 
 if __name__ == '__main__':
