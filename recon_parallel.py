@@ -7,7 +7,6 @@ import os
 import numpy as np
 import math
 import cold
-from mpi4py import MPI
 
 DATASETS = ['lau', 'pos', 'sig', 'ind']
 PROC_OUT_DIR = 'h5_backup'
@@ -20,6 +19,10 @@ def parse_args():
     parser.add_argument(
         'config_fp',
         help='path to the config used to create the run'
+    )
+    parser.add_argument(
+        '--p',
+        help='path override for manual running'
     )
     return parser.parse_args()
 
@@ -118,6 +121,20 @@ def reconstruct_backup(backup_dir, out_dir, scan_no, im_dim, im_num):
         for ds_path in avail_datasets:
             h5_f_out.create_dataset(ds_path, data=reshapes[ds_path])
 
+def recon_manual_from_config(config_fp, path_override):
+    conf_file, conf_comp, conf_geo, conf_algo = cold.config(config_fp)
+    dim_y = conf_file['frame'][1] - conf_file['frame'][0]
+    dim_x = conf_file['frame'][3] - conf_file['frame'][2]
+    proc_dump_dir = os.path.join(path_override, PROC_OUT_DIR)
+    recon_out_dir = os.path.join(path_override, RECON_OUT_DIR)
+    if not os.path.exists(recon_out_dir):
+        os.mkdir(recon_out_dir)
+    im_num = conf_comp['scanstart']
+    reconstruct_backup(proc_dump_dir, 
+                        recon_out_dir,
+                        0,
+                        dim_y,
+                        im_num)
 
 def recon_from_config(comm, config_fp):
     mpi_rank = comm.Get_rank()
@@ -148,11 +165,16 @@ def recon_from_config(comm, config_fp):
 
 if __name__ == '__main__':
     args = parse_args()
-    comm = MPI.COMM_WORLD
-    try:
-        recon_from_config(comm, args.config_fp)
-    except Exception as e:
-        print(e)
-        with open('err_recon.log', 'a+') as err_f:
-            err_f.write(str(e)) # MPI term output can break.
-        comm.Abort(1) # Term run early to prevent hang.
+    if args.p is not None:
+        recon_manual_from_config(args.config_fp, args.p)
+    
+    else:
+        from mpi4py import MPI
+        comm = MPI.COMM_WORLD
+        try:
+            recon_from_config(comm, args.config_fp)
+        except Exception as e:
+            print(e)
+            with open('err_recon.log', 'a+') as err_f:
+                err_f.write(str(e)) # MPI term output can break.
+            comm.Abort(1) # Term run early to prevent hang.
