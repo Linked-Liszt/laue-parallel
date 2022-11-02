@@ -4,7 +4,7 @@ CONFIGPATH=/eagle/projects/APSDataAnalysis/mprince/lau/laue-parallel/configs/con
 
 echo ${CONFIGPATH}
 
-aprun -n 64 -N 32 -d 2 -j 1 \
+aprun -n 64 -N 64 -d 1 -j 1 -cc depth \
     /eagle/APSDataAnalysis/mprince/lau/env_theta/lau_theta/bin/python \
     /eagle/projects/APSDataAnalysis/mprince/lau/laue-parallel/laue_parallel.py \
     ${CONFIGPATH} \
@@ -14,7 +14,7 @@ aprun -n 64 -N 32 -d 2 -j 1 \
 
 echo "Completed processing..."
 
-aprun -n 64 -N 32 -d 2 -j 1 \
+aprun -n 64 -N 64 -d 1 -j 1 -cc depth \
     /eagle/APSDataAnalysis/mprince/lau/env_theta/lau_theta/bin/python \
     /eagle/projects/APSDataAnalysis/mprince/lau/laue-parallel/recon_parallel.py \
     ${CONFIGPATH} \
