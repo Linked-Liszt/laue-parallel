@@ -32,9 +32,11 @@ mpiexec -n ${NTOTRANKS} --ppn ${NRANKS_PER_NODE} --depth=${NDEPTH} --cpu-bind de
     ${CONFIGPATH} \
     --log_time \
     --h5_backup \
-    --disable_recon
+    --disable_recon \
+    --start_im 6
 
 mpiexec -n ${NNODES} --ppn 1 --depth=${NDEPTH} --cpu-bind depth --env OMP_NUM_THREADS=${NTHREADS} -env OMP_PLACES=threads \
     /eagle/projects/APSDataAnalysis/mprince/lau_env_polaris/bin/python \
     /eagle/projects/APSDataAnalysis/mprince/lau/laue-parallel/recon_parallel.py \
     ${CONFIGPATH} \
+    --start_im 6
