@@ -43,6 +43,11 @@ def parse_args():
         action='store_true',
         help='Disable in-script reconstruction. Also forces h5 backup'
     )
+    parser.add_argument(
+        '--start_im',
+        type=int,
+        help='Specify a start image through command line.'
+    )
     return parser.parse_args()
 
 
@@ -79,7 +84,7 @@ def compute_absloute_ind(im_dim, num_splits, rank):
     return np.concatenate(ind_rows)
 
 
-def parallel_laue(comm, path, dry_run=False, debug=False, log_time=False, h5_backup=False, disable_recon=False):
+def parallel_laue(comm, path, dry_run=False, debug=False, log_time=False, h5_backup=False, disable_recon=False, start_im=None):
     """
     Run cold processing in parallel.
     """
@@ -92,21 +97,28 @@ def parallel_laue(comm, path, dry_run=False, debug=False, log_time=False, h5_bac
     # Read parameters from the config file
     file, comp, geo, algo = cold.config(path)
 
+    if start_im is None:
+        scan_start = comp['scanstart']
+    else:
+        scan_start = start_im
+    print(f'Start IM: {start_im}')
+    out_path = os.path.join(file['output'], str(start_im))
+
     if log_time:
         setup_start_time = datetime.datetime.now()
         time_data = {}
-        time_dir = os.path.join(file['output'], 'time_logs')
+        time_dir = os.path.join(out_path, 'time_logs')
         if rank == 0:
             if not os.path.exists(time_dir):
-                os.mkdir(time_dir)
+                os.makedirs(time_dir)
     
     if h5_backup:
-        h5_backup_dir = os.path.join(file['output'], 'h5_backup')
+        h5_backup_dir = os.path.join(out_path, 'h5_backup')
         if rank == 0:
             if not os.path.exists(h5_backup_dir):
-                os.mkdir(h5_backup_dir)
+                os.makedirs(h5_backup_dir)
     
-    scan_start = comp['scanstart']
+
     no = comp['scannumber']
     gr = comp['gridsize']
 
@@ -167,7 +179,7 @@ def parallel_laue(comm, path, dry_run=False, debug=False, log_time=False, h5_bac
         #TODO: Reshape on IND. 
         print(f'H5 parallel write: {rank}: {pointer * lau.shape[0]}, {(pointer + 1) * lau.shape[0]}, {lau.shape}')
         scan_comm.Barrier()
-        with h5py.File(os.path.join(file['output'], f'out{scanpoint}.hdf5'), 'w', driver='mpio', comm=scan_comm) as h5_f:
+        with h5py.File(os.path.join(out_path, f'out{scanpoint}.hdf5'), 'w', driver='mpio', comm=scan_comm) as h5_f:
             dset_lau = h5_f.create_dataset('lau', (lau.shape[0] * int(size/no), lau.shape[1]), dtype=float)
             dset_lau[pointer * lau.shape[0] : (pointer + 1) * lau.shape[0], :] = lau
             scan_comm.Barrier()
@@ -213,7 +225,7 @@ def parallel_laue(comm, path, dry_run=False, debug=False, log_time=False, h5_bac
             sig_reshape = np.swapaxes(sig_reshape, 0, 2)
             sig_reshape = np.swapaxes(sig_reshape, 1, 2)
 
-            with h5py.File(file['output'] +'/'+str(scanpoint) + '.hd5', 'w') as hf:
+            with h5py.File(out_path +'/'+str(scanpoint) + '.hd5', 'w') as hf:
                 hf.create_dataset('pos', data=pos_reshape)
                 hf.create_dataset('lau', data=lau_reshape)
                 hf.create_dataset('sig', data=sig_reshape)
@@ -225,7 +237,7 @@ def parallel_laue(comm, path, dry_run=False, debug=False, log_time=False, h5_bac
             json.dump(time_data, time_f)
 
     if rank == 0:
-        shutil.copy2(path, file['output'])
+        shutil.copy2(path, out_path)
 
 
 if __name__ == '__main__':
@@ -239,7 +251,8 @@ if __name__ == '__main__':
             debug=args.debug, 
             log_time=args.log_time, 
             h5_backup=args.h5_backup,
-            disable_recon=args.disable_recon)
+            disable_recon=args.disable_recon,
+            start_im=args.start_im)
     except Exception as e:
         with open('err.log', 'a+') as err_f:
             err_f.write(str(e)) # MPI term output can break.

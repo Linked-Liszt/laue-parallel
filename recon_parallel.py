@@ -7,10 +7,12 @@ import os
 import numpy as np
 import math
 import cold
+import shutil
 
 DATASETS = ['lau', 'pos', 'sig', 'ind']
 PROC_OUT_DIR = 'h5_backup'
 RECON_OUT_DIR = 'recon'
+ALL_OUTS = 'all_recons'
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -24,10 +26,15 @@ def parse_args():
         '--p',
         help='path override for manual running'
     )
+    parser.add_argument(
+        '--start_im',
+        type=int,
+        help='Specify a start image through command line.'
+    )
     return parser.parse_args()
 
 
-def reconstruct_backup(backup_dir, out_dir, scan_no, im_dim, im_num):
+def reconstruct_backup(backup_dir, out_dir, scan_no, im_dim, im_num, all_dir):
     max_proc = -1
     for fp in os.listdir(backup_dir):
         rank = int(fp.split('_')[1].split('.')[0])
@@ -120,23 +127,40 @@ def reconstruct_backup(backup_dir, out_dir, scan_no, im_dim, im_num):
     with h5py.File(os.path.join(out_dir, f'im_{im_num}_r{scan_no}.hd5'), 'w') as h5_f_out:
         for ds_path in avail_datasets:
             h5_f_out.create_dataset(ds_path, data=reshapes[ds_path])
+    
+    shutil.copy2(os.path.join(out_dir, f'im_{im_num}_r{scan_no}.hd5'), os.path.join(all_dir, f'im_{im_num}_r{scan_no}.hd5'))
 
-def recon_manual_from_config(config_fp, path_override):
+def recon_manual_from_config(config_fp, path_override, override_start=None):
     conf_file, conf_comp, conf_geo, conf_algo = cold.config(config_fp)
     dim_y = conf_file['frame'][1] - conf_file['frame'][0]
     dim_x = conf_file['frame'][3] - conf_file['frame'][2]
-    proc_dump_dir = os.path.join(path_override, PROC_OUT_DIR)
-    recon_out_dir = os.path.join(path_override, RECON_OUT_DIR)
+
+    if override_start is None:
+        scan_start = override_start
+    else:
+        scan_start = conf_comp['scanstart']
+
+    out_path = os.path.join(path_override, str(scan_start))
+
+    proc_dump_dir = os.path.join(out_path, PROC_OUT_DIR)
+    recon_out_dir = os.path.join(out_path, RECON_OUT_DIR)
+    all_outs = os.path.join(conf_file['output'], ALL_OUTS)
+
     if not os.path.exists(recon_out_dir):
-        os.mkdir(recon_out_dir)
-    im_num = conf_comp['scanstart']
+        os.makedirs(recon_out_dir)
+    if not os.path.exists(all_outs):
+        os.makedirs(all_outs)
+
+    if override_start is not None:
+        im_num = override_start
     reconstruct_backup(proc_dump_dir, 
                         recon_out_dir,
                         0,
                         dim_y,
-                        im_num)
+                        im_num,
+                        all_outs)
 
-def recon_from_config(comm, config_fp):
+def recon_from_config(comm, config_fp, override_start=None):
     mpi_rank = comm.Get_rank()
     conf_file, conf_comp, conf_geo, conf_algo = cold.config(config_fp)
     dim_y = conf_file['frame'][1] - conf_file['frame'][0]
@@ -145,34 +169,47 @@ def recon_from_config(comm, config_fp):
     if dim_y != dim_x:
         raise NotImplementedError("Can only reconstruct square images!")
 
-    proc_dump_dir = os.path.join(conf_file['output'], PROC_OUT_DIR)
-    recon_out_dir = os.path.join(conf_file['output'], RECON_OUT_DIR)
+    if override_start is None:
+        scan_start = conf_comp['scanstart']
+    else:
+        scan_start = override_start
+    
+    out_path = os.path.join(conf_file['output'], str(scan_start))
+
+    proc_dump_dir = os.path.join(out_path, PROC_OUT_DIR)
+    recon_out_dir = os.path.join(out_path, RECON_OUT_DIR)
+    all_outs = os.path.join(conf_file['output'], ALL_OUTS)
 
     if mpi_rank == 0:
         if not os.path.exists(recon_out_dir):
-            os.mkdir(recon_out_dir)
+            os.makedirs(recon_out_dir)
+        if not os.path.exists(all_outs):
+            os.makedirs(all_outs)
     comm.Barrier()
 
     im_num = mpi_rank + conf_comp['scanstart']
+    if override_start is not None:
+        im_num = mpi_rank + override_start
 
     if mpi_rank < conf_comp['scannumber']:
         reconstruct_backup(proc_dump_dir, 
                            recon_out_dir,
                            mpi_rank,
                            dim_y,
-                           im_num)
+                           im_num,
+                           all_outs)
 
 
 if __name__ == '__main__':
     args = parse_args()
     if args.p is not None:
-        recon_manual_from_config(args.config_fp, args.p)
+        recon_manual_from_config(args.config_fp, args.p, args.start_im)
     
     else:
         from mpi4py import MPI
         comm = MPI.COMM_WORLD
         try:
-            recon_from_config(comm, args.config_fp)
+            recon_from_config(comm, args.config_fp, args.start_im)
         except Exception as e:
             print(e)
             with open('err_recon.log', 'a+') as err_f:

@@ -46,7 +46,7 @@ def reconstruct_backup(backup_dir, scan_no):
     out_dir = os.path.join(os.sep.join(backup_dir.split(os.sep)[:-2]), 'recon')
     
     if not os.path.exists(out_dir):
-        os.mkdir(out_dir)
+        os.makedirs(out_dir)
 
     raw_ds = {}
     for ds_path in avail_datasets:
