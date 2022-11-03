@@ -1,11 +1,10 @@
 ver: 1.0
 
 file:
-    path: '/eagle/APSDataAnalysis/mprince/lau/data/Al30_thick_maskS1_Z'
-    output: '/eagle/APSDataAnalysis/mprince/lau/output'
-    range: [1, 401, 1]
+    path: /eagle/APSDataAnalysis/mprince/lau/data/KS_10UN2_mask
+    range: [0, 201, 1]
     threshold: 0 # [readout values]
-    frame: [1000, 1064, 1000, 1064] # [pixels]
+    frame: [580, 1780, 500, 1700] # [pixels]
     ext: 'h5'
     stacked: True
     h5:
@@ -13,11 +12,7 @@ file:
 
 comp:
     server: 'local'
-    scanstart: 1
-    scannumber: 1
-    gridsize: 8
-    workers: 1
-    h5parallel: False
+    workers: 8
     functionid: 'd8461388-9442-4008-a5f1-2cfa112f6923'
 
 geo:
@@ -34,18 +29,18 @@ geo:
 
         focus:
             cenx: -0.97533203
-            dist: 0.61900000
+            dist: 5.87
             cenz: -0.17089844
             anglex: -0.06152344
             angley: -0.68076172
             anglez: -1.28115234
 
         calibrate: 
-            dist: [0.61, 0.63, 0.001] # [mm] 0.619
+            dist: [5.8, 6.1, 0.01] # [mm]
 
     scanner:
         angle: 0
-        step: 0.5 # [mu]
+        step: 1 # [mu]
         rot: [0.0045, -0.00684, -3.375e-5]
         axis: [1, 0, 0]
 
@@ -57,7 +52,7 @@ geo:
 
     source: 
         offset: 0
-        grid: [-1.25, -0.85, 0.001] # [mm]
+        grid: [-1.45, -1.15, 0.001] # [mm]
 
 algo:
     iter: 1
@@ -71,6 +66,6 @@ algo:
         order: 5
         scale: 1
         init:
-            maxsize: 128 
-            avgsize: 16
+            maxsize: 180 
+            avgsize: 30
             atol: 4

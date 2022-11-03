@@ -1,20 +1,20 @@
-cd /eagle/APSDataAnalysis/mprince/lau/laue-parallel
+cd /eagle/APSDataAnalysis/mprince/lau/dev/laue-parallel/logs
 
-CONFIGPATH=/eagle/projects/APSDataAnalysis/mprince/lau/laue-parallel/configs/config-64.yml
+CONFIGPATH=/eagle/projects/APSDataAnalysis/mprince/lau/dev/laue-parallel/configs/AL30/config-64.yml
 
 echo ${CONFIGPATH}
 
-aprun -n 64 -N 64 -d 1 -j 1 -cc depth \
+aprun -n 64 -N 64 -d 4 -j 4 -cc depth \
     /eagle/APSDataAnalysis/mprince/lau/env_theta/lau_theta/bin/python \
-    /eagle/projects/APSDataAnalysis/mprince/lau/laue-parallel/laue_parallel.py \
+    /eagle/projects/APSDataAnalysis/mprince/lau/dev/laue-parallel/laue_parallel.py \
     ${CONFIGPATH} \
     --log_time \
     --h5_backup \
-    --disable_recon
+    --disable_recon \
 
 echo "Completed processing..."
 
-aprun -n 64 -N 64 -d 1 -j 1 -cc depth \
+aprun -n 64 -N 64 -d 4 -j 4 -cc depth \
     /eagle/APSDataAnalysis/mprince/lau/env_theta/lau_theta/bin/python \
-    /eagle/projects/APSDataAnalysis/mprince/lau/laue-parallel/recon_parallel.py \
+    /eagle/projects/APSDataAnalysis/mprince/lau/dev/laue-parallel/recon_parallel.py \
     ${CONFIGPATH} \
