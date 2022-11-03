@@ -48,6 +48,11 @@ def parse_args():
         type=int,
         help='Specify a start image through command line.'
     )
+    parser.add_argument(
+        '--profile',
+        action='store_true',
+        help='Activate cprofile for the 0th rank',
+    )
     return parser.parse_args()
 
 
@@ -243,16 +248,32 @@ def parallel_laue(comm, path, dry_run=False, debug=False, log_time=False, h5_bac
 if __name__ == '__main__':
     args = parse_args()
     comm = MPI.COMM_WORLD
+
     try:
-        parallel_laue(
-            comm=comm,
-            path=args.config_path, 
-            dry_run=args.dry_run, 
-            debug=args.debug, 
-            log_time=args.log_time, 
-            h5_backup=args.h5_backup,
-            disable_recon=args.disable_recon,
-            start_im=args.start_im)
+        if comm.Get_rank() == 0 and args.profile:
+            import cProfile
+            cProfile.run('parallel_laue('
+                            + 'comm=comm, '
+                            + 'path=args.config_path, '
+                            + 'dry_run=args.dry_run, '
+                            + 'debug=args.debug, '
+                            + 'log_time=args.log_time, '
+                            + 'h5_backup=args.h5_backup,'
+                            + 'disable_recon=args.disable_recon, '
+                            + 'start_im=args.start_im)',
+                        'laue.profile')
+            comm.Abort(0)
+        else:
+            parallel_laue(
+                comm=comm,
+                path=args.config_path, 
+                dry_run=args.dry_run, 
+                debug=args.debug, 
+                log_time=args.log_time, 
+                h5_backup=args.h5_backup,
+                disable_recon=args.disable_recon,
+                start_im=args.start_im)
+
     except Exception as e:
         with open('err.log', 'a+') as err_f:
             err_f.write(str(e)) # MPI term output can break.
