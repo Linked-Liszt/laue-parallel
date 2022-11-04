@@ -2,7 +2,7 @@ ver: 1.0
 
 file:
     path: /eagle/APSDataAnalysis/mprince/lau/data/KS_10UN2_mask
-    output: '/eagle/APSDataAnalysis/mprince/lau/output'
+    output: '/eagle/APSDataAnalysis/mprince/lau/output_ks'
     range: [0, 201, 1]
     threshold: 0 # [readout values]
     frame: [580, 1780, 500, 1700] # [pixels]
@@ -16,7 +16,7 @@ comp:
     scanstart: 0
     scannumber: 1
     workers: 1
-    gridsize: 8
+    gridsize: 24
     h5parallel: False
     functionid: 'd8461388-9442-4008-a5f1-2cfa112f6923'
 
