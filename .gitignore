@@ -2,6 +2,9 @@
 *.cobaltlog
 *.error
 *.output
-.loglogin
 
+.loglogin
+.vscode
 runscripts_prod
+output
+profiles

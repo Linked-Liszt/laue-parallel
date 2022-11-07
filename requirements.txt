@@ -1,0 +1,14 @@
+fire
+tifffile
+opencv-python
+netCDF4
+astropy
+
+# System Specific
+# mpi4py
+# h5py
+
+# External libraries not on pypi
+# https://github.com/dgursoy/cold
+# https://github.com/data-exchange/dxchange
+# https://github.com/data-exchange/dxfile

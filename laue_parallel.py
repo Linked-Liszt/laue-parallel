@@ -13,6 +13,9 @@ import dataclasses
 import copy
 
 def parse_args():
+    """
+    Script arguments. Use this as a reference for script usage. 
+    """
     parser = argparse.ArgumentParser(
         description='Script to perform a parallel coded aperture post-processing.'
     )
@@ -41,6 +44,7 @@ def parse_args():
         help='Activate cprofile for the 0th rank',
     )
     return parser.parse_args()
+
 
 @dataclasses.dataclass
 class OutDirs():
@@ -74,7 +78,7 @@ class ColdResult():
     lau = None
 
 
-def time_wrap(func, time_data, time_key):
+def time_wrap(func, time_data: dict, time_key: str):
     """
     Timing decorator to log the timing of various operations. 
     """
@@ -88,6 +92,10 @@ def time_wrap(func, time_data, time_key):
 
 
 def make_paths(args, cold_config: ColdConfig, rank: int) -> OutDirs:
+    """
+    Make the necessary output directories for processes to dump
+    results into.  
+    """
     print(f'Start IM: {args.start_im}')
     out_dirs = OutDirs
     out_dirs.pfx = os.path.join(cold_config.file['output'], str(cold_config.comp['scanstart']))
@@ -106,6 +114,14 @@ def make_paths(args, cold_config: ColdConfig, rank: int) -> OutDirs:
 
 
 def spatial_decompose(comm, cold_config: ColdConfig, rank: int) -> ColdConfig:
+    """
+    Perform the calculations to determine what area of the image a single the
+    process should perform calculations on. 
+
+    Returns: 
+        cc: a copy of the cold config with the parameters set for the individual
+            process 
+    """
     cc = copy.deepcopy(cold_config)
 
     no = cc.comp['scannumber']
@@ -137,6 +153,10 @@ def spatial_decompose(comm, cold_config: ColdConfig, rank: int) -> ColdConfig:
 
 
 def process_cold(args, cold_config: ColdConfig, time_data: TimeData, rank: int) -> ColdResult:
+    """
+    Performs the image stack calculations via the cold library. 
+    """
+
     cr = ColdResult()
 
     cold.load = time_wrap(cold.load, time_data.times, 'cold_load')
@@ -155,6 +175,13 @@ def process_cold(args, cold_config: ColdConfig, time_data: TimeData, rank: int) 
 
 
 def write_output(cold_config: ColdConfig, out_dirs: OutDirs, cold_result: ColdResult, rank: int) -> None:
+    """
+    Takes the output from cold processing and writes to a file. Currently, each process dumps its individual 
+    output into a h5 file which is then reconstructed by a script. 
+
+    TODO: Could be performed over MPI or h5+MPI but data seems too large for infrastructure, so would likely 
+          require some sort of batching system to do in the same script.
+    """
     with h5py.File(os.path.join(out_dirs.proc_results, f'{cold_config.scanpoint}_{cold_config.pointer}.hd5'), 'w') as hf:
         hf.create_dataset('pos', data=cold_result.pos)
         hf.create_dataset('sig', data=cold_result.sig)
@@ -165,6 +192,9 @@ def write_output(cold_config: ColdConfig, out_dirs: OutDirs, cold_result: ColdRe
 
 
 def write_time(out_dirs: OutDirs, time_data: TimeData, rank: int) -> None:
+    """
+    Writes time logs to output directory.  
+    """
     time_data.times['write_time'] = (datetime.datetime.now() - time_data.write_start).total_seconds()
     time_data.times['walltime'] = (datetime.datetime.now() - time_data.setup_start).total_seconds()
     with open(os.path.join(out_dirs.time, f'proc_{rank}.json'), 'w') as time_f:
@@ -172,7 +202,8 @@ def write_time(out_dirs: OutDirs, time_data: TimeData, rank: int) -> None:
 
 def parallel_laue(comm, args):
     """
-    Run cold processing in parallel.
+    Main script function to set up output, spatially decompose, compute cold
+    results, and write all relevant data to disk. 
     """
     rank = comm.Get_rank()
 
