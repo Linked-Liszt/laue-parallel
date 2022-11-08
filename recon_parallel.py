@@ -10,7 +10,7 @@ import cold
 import shutil
 
 DATASETS = ['lau', 'pos', 'sig', 'ind']
-PROC_OUT_DIR = 'h5_backup'
+PROC_OUT_DIR = 'proc_results'
 RECON_OUT_DIR = 'recon'
 ALL_OUTS = 'all_recons'
 
@@ -34,18 +34,26 @@ def parse_args():
     return parser.parse_args()
 
 
-def reconstruct_backup(backup_dir, out_dir, scan_no, im_dim, im_num, all_dir):
+def reconstruct_backup(base_path, scan_no, im_dim, im_num, all_dir):
     max_proc = -1
+    backup_dir = os.path.join(base_path, str(im_num + scan_no), PROC_OUT_DIR)
+    if not os.path.exists(backup_dir):
+        os.makedirs(backup_dir)
+
+    out_dir = os.path.join(base_path, str(im_num + scan_no), RECON_OUT_DIR)
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+
     for fp in os.listdir(backup_dir):
-        rank = int(fp.split('_')[1].split('.')[0])
-        if int(fp.split('_')[0]) == scan_no and rank > max_proc:
+        rank = int(fp.split('.')[0])
+        if rank > max_proc:
             max_proc = rank
     max_proc += 1
     print(f'Found max rank: {max_proc}')
 
     dims = {}
     avail_datasets = []
-    with h5py.File(os.path.join(backup_dir, f'{scan_no}_0.hd5'), 'r') as h5_f:
+    with h5py.File(os.path.join(backup_dir, f'0.hd5'), 'r') as h5_f:
         for ds_path in DATASETS:
             if ds_path in h5_f:
                 dims[ds_path] = h5_f[ds_path].shape
@@ -91,7 +99,7 @@ def reconstruct_backup(backup_dir, out_dir, scan_no, im_dim, im_num, all_dir):
 
     print('Gathering proc data')
     for i in range(max_proc):
-        with h5py.File(os.path.join(backup_dir, f'0_{i}.hd5'), 'r') as h5_f_in:
+        with h5py.File(os.path.join(backup_dir, f'{i}.hd5'), 'r') as h5_f_in:
             for ds_path in avail_datasets:
                 if len(dims[ds_path]) == 1:
                     raw_ds[ds_path][i * dims[ds_path][0] : (i + 1) * dims[ds_path][0]] = np.array(h5_f_in[ds_path])
@@ -169,20 +177,10 @@ def recon_from_config(comm, config_fp, override_start=None):
     if dim_y != dim_x:
         raise NotImplementedError("Can only reconstruct square images!")
 
-    if override_start is None:
-        scan_start = conf_comp['scanstart']
-    else:
-        scan_start = override_start
-    
-    out_path = os.path.join(conf_file['output'], str(scan_start))
-
-    proc_dump_dir = os.path.join(out_path, PROC_OUT_DIR)
-    recon_out_dir = os.path.join(out_path, RECON_OUT_DIR)
+    base_path = conf_file['output']
     all_outs = os.path.join(conf_file['output'], ALL_OUTS)
 
     if mpi_rank == 0:
-        if not os.path.exists(recon_out_dir):
-            os.makedirs(recon_out_dir)
         if not os.path.exists(all_outs):
             os.makedirs(all_outs)
     comm.Barrier()
@@ -192,8 +190,7 @@ def recon_from_config(comm, config_fp, override_start=None):
         im_num = mpi_rank + override_start
 
     if mpi_rank < conf_comp['scannumber']:
-        reconstruct_backup(proc_dump_dir, 
-                           recon_out_dir,
+        reconstruct_backup(base_path, 
                            mpi_rank,
                            dim_y,
                            im_num,
@@ -211,7 +208,9 @@ if __name__ == '__main__':
         try:
             recon_from_config(comm, args.config_fp, args.start_im)
         except Exception as e:
-            print(e)
+            import traceback
             with open('err_recon.log', 'a+') as err_f:
-                err_f.write(str(e)) # MPI term output can break.
+                err_f.write(str(e) + '\n') # MPI term output can break.
+                err_f.write('Traceback: \n')
+                err_f.write(traceback.format_exc())
             comm.Abort(1) # Term run early to prevent hang.

@@ -5,7 +5,7 @@ file:
     output: '/eagle/APSDataAnalysis/mprince/lau/output'
     range: [0, 201, 1]
     threshold: 0 # [readout values]
-    frame: [580, 1780, 500, 1700] # [pixels]
+    frame: [580, 596, 580, 596] # [pixels]
     ext: 'h5'
     stacked: True
     h5:
@@ -14,9 +14,9 @@ file:
 comp:
     server: 'local'
     scanstart: 0
-    scannumber: 1
+    scannumber: 4
     workers: 1
-    gridsize: 8
+    gridsize: 4
     h5parallel: False
     functionid: 'd8461388-9442-4008-a5f1-2cfa112f6923'
 

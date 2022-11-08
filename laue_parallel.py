@@ -91,22 +91,26 @@ def time_wrap(func, time_data: dict, time_key: str):
     return wrap
 
 
-def make_paths(args, cold_config: ColdConfig, rank: int) -> OutDirs:
+def make_paths(cold_config: ColdConfig, rank: int) -> OutDirs:
     """
     Make the necessary output directories for processes to dump
     results into.  
     """
-    print(f'Start IM: {args.start_im}')
     out_dirs = OutDirs
-    out_dirs.pfx = os.path.join(cold_config.file['output'], str(cold_config.comp['scanstart']))
+
+    num_grid = cold_config.comp['gridsize'] ** 2
+    im_num = cold_config.comp['scanstart'] + (rank // num_grid)
+    print(f"Rank {rank} processing IM: {im_num}")
+
+    out_dirs.pfx = os.path.join(cold_config.file['output'], str(im_num))
 
     out_dirs.time = os.path.join(out_dirs.pfx, 'time_logs')
-    if rank == 0:
+    if rank % num_grid == 0:
         if not os.path.exists(out_dirs.time):
             os.makedirs(out_dirs.time)
     
     out_dirs.proc_results = os.path.join(out_dirs.pfx, 'proc_results')
-    if rank == 0:
+    if rank % num_grid == 0:
         if not os.path.exists(out_dirs.proc_results):
             os.makedirs(out_dirs.proc_results)
     
@@ -182,7 +186,7 @@ def write_output(cold_config: ColdConfig, out_dirs: OutDirs, cold_result: ColdRe
     TODO: Could be performed over MPI or h5+MPI but data seems too large for infrastructure, so would likely 
           require some sort of batching system to do in the same script.
     """
-    with h5py.File(os.path.join(out_dirs.proc_results, f'{cold_config.scanpoint}_{cold_config.pointer}.hd5'), 'w') as hf:
+    with h5py.File(os.path.join(out_dirs.proc_results, f'{cold_config.pointer}.hd5'), 'w') as hf:
         hf.create_dataset('pos', data=cold_result.pos)
         hf.create_dataset('sig', data=cold_result.sig)
         hf.create_dataset('ind', data=cold_result.ind)
@@ -214,10 +218,10 @@ def parallel_laue(comm, args):
     time_data = TimeData()
     time_data.setup_start = datetime.datetime.now()
 
-    out_dirs = make_paths(args, cold_config, rank)
-    comm.Barrier()
-
     cold_config = spatial_decompose(comm, cold_config, rank)
+
+    out_dirs = make_paths(cold_config, rank)
+    comm.Barrier()
 
     time_data.setup = (datetime.datetime.now() - time_data.setup_start).total_seconds()
 
