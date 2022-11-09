@@ -11,6 +11,7 @@ import datetime
 import argparse
 import dataclasses
 import copy
+import pickle
 
 def parse_args():
     """
@@ -50,6 +51,7 @@ def parse_args():
 class OutDirs():
     pfx: str = None
     time: str = None
+    config: str = None
     proc_results: str = None
 
 @dataclasses.dataclass
@@ -113,6 +115,11 @@ def make_paths(cold_config: ColdConfig, rank: int) -> OutDirs:
     if rank % num_grid == 0:
         if not os.path.exists(out_dirs.proc_results):
             os.makedirs(out_dirs.proc_results)
+
+    out_dirs.config = os.path.join(out_dirs.pfx, 'configs')
+    if rank % num_grid == 0:
+        if not os.path.exists(out_dirs.config):
+            os.makedirs(out_dirs.config)
     
     return out_dirs
 
@@ -222,6 +229,9 @@ def parallel_laue(comm, args):
 
     out_dirs = make_paths(cold_config, rank)
     comm.Barrier()
+
+    with open(os.path.join(out_dirs.config, f'{rank}.pkl'), 'wb') as conf_f:
+        pickle.dump(cold_config, conf_f)
 
     time_data.setup = (datetime.datetime.now() - time_data.setup_start).total_seconds()
 
