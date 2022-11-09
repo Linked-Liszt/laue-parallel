@@ -18,9 +18,13 @@ def parse_args():
         'config_fp',
         help='Path to .yaml cold configuration'
     )
+    parser.add_argument(
+        'output_fp',
+        help='Path to output generated shell files'
+    )
     return parser.parse_args()
 
-def build_scripts(script_fp, config_fp):
+def build_scripts(script_fp, config_fp, output_fp):
     conf_file, conf_comp, conf_geo, conf_algo = cold.config(config_fp)
 
     with open(script_fp, 'r') as script_f:
@@ -41,10 +45,10 @@ def build_scripts(script_fp, config_fp):
         for insert_idx in INSERT_LINES:
             script_lines.insert(insert_idx, f'    --start_im {im}\n')
         
-        with open(f'runscripts_prod/im_{im}_laue.sh', 'w') as script_f:
+        with open(os.path.join(output_fp, f'im_{im}_laue.sh'), 'w') as script_f:
             script_f.writelines(script_lines)
 
 
 if __name__ == '__main__':
     args = parse_args()
-    build_scripts(args.script_fp, args.config_fp)
+    build_scripts(args.script_fp, args.config_fp, args.output_fp)
