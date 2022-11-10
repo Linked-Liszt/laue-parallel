@@ -21,7 +21,7 @@ NRANKS_PER_NODE=32
 NDEPTH=2
 NTHREADS=2
 
-CONFIGPATH=/eagle/projects/APSDataAnalysis/mprince/lau/laue-parallel/configs/config-full.yml
+CONFIGPATH=/eagle/projects/APSDataAnalysis/mprince/lau/laue-parallel/configs/al/config-full.yml
 
 NTOTRANKS=$(( NNODES * NRANKS_PER_NODE ))
 echo "NUM_OF_NODES= ${NNODES} TOTAL_NUM_RANKS= ${NTOTRANKS} RANKS_PER_NODE= ${NRANKS_PER_NODE} THREADS_PER_RANK= ${NTHREADS}"
@@ -30,8 +30,10 @@ mpiexec -n ${NTOTRANKS} --ppn ${NRANKS_PER_NODE} --depth=${NDEPTH} --cpu-bind de
     /eagle/projects/APSDataAnalysis/mprince/lau_env_polaris/bin/python \
     /eagle/projects/APSDataAnalysis/mprince/lau/laue-parallel/laue_parallel.py \
     ${CONFIGPATH} \
+    --start_im 6 \
 
 mpiexec -n ${NNODES} --ppn 1 --depth=${NDEPTH} --cpu-bind depth --env OMP_NUM_THREADS=${NTHREADS} -env OMP_PLACES=threads \
     /eagle/projects/APSDataAnalysis/mprince/lau_env_polaris/bin/python \
     /eagle/projects/APSDataAnalysis/mprince/lau/laue-parallel/recon_parallel.py \
     ${CONFIGPATH} \
+    --start_im 6 \
