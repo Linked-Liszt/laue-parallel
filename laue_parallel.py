@@ -256,7 +256,7 @@ if __name__ == '__main__':
     try:
         if comm.Get_rank() == 0 and args.profile:
             import cProfile
-            cProfile.run('parallel_laue(comm, args')
+            cProfile.run('parallel_laue(comm, args)')
             comm.Abort(0)
         else:
             parallel_laue(comm, args)
