@@ -175,7 +175,8 @@ def process_cold(args, cold_config: ColdConfig, time_data: TimeData, rank: int) 
     
     # Reconstruct
     cold.decode = time_wrap(cold.decode, time_data.times, 'cold_decode')
-    cr.pos, cr.sig, cr.scl = cold.decode(cr.data, cr.ind, cold_config.comp, cold_config.geo, cold_config.algo, debug=args.debug)
+    use_gpu = True
+    cr.pos, cr.sig, cr.scl = cold.decode(cr.data, cr.ind, cold_config.comp, cold_config.geo, cold_config.algo, debug=args.debug, use_gpu=use_gpu)
 
     cold.resolve = time_wrap(cold.resolve, time_data.times, 'cold_resolve')
     cr.dep, cr.lau = cold.resolve(cr.data, cr.ind, cr.pos, cr.sig, cold_config.geo, cold_config.comp)
@@ -196,6 +197,7 @@ def write_output(cold_config: ColdConfig, out_dirs: OutDirs, cold_result: ColdRe
     with h5py.File(os.path.join(out_dirs.proc_results, f'{cold_config.pointer}.hd5'), 'w') as hf:
         hf.create_dataset('pos', data=cold_result.pos)
         hf.create_dataset('sig', data=cold_result.sig)
+        hf.create_dataset('scl', data=cold_result.scl)
         hf.create_dataset('ind', data=cold_result.ind)
         hf.create_dataset('lau', data=cold_result.lau)
         hf.create_dataset('frame', data=cold_config.file['frame'])
@@ -229,7 +231,6 @@ def parallel_laue(comm, args):
     """
     cold_config = spatial_decompose(comm, cold_config, rank)
 
-    out_dirs = make_paths(cold_config, rank)
     comm.Barrier()
 
     with open(os.path.join(out_dirs.config, f'{rank}.pkl'), 'wb') as conf_f:
@@ -240,12 +241,13 @@ def parallel_laue(comm, args):
     if args.dry_run:
         exit()
     """
+    out_dirs = make_paths(cold_config, rank)
 
     cold_result = process_cold(args, cold_config, time_data, rank)
 
+    write_output(cold_config, out_dirs, cold_result, rank)
     """
     time_data.write_start = datetime.datetime.now()
-    write_output(cold_config, out_dirs, cold_result, rank)
     write_time(out_dirs, time_data, rank)
 
     # Copy config to output
@@ -261,7 +263,6 @@ if __name__ == '__main__':
 
     if args.profile:
         import cProfile
-        cProfile.run('parallel_laue(comm, args)')
-        comm.Abort(0)
+        cProfile.run('parallel_laue(comm, args)', 'laue-local.profile')
     else:
         parallel_laue(comm, args)
