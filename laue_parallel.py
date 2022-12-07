@@ -264,7 +264,7 @@ if __name__ == '__main__':
     except Exception as e:
         import traceback
         with open('err.log', 'a+') as err_f:
-            err_f.write(str(e) + '\n') # MPI term output can break.
+            err_f.write(f'{str(e)} {comm.Get_rank()} \n') # MPI term output can break.
             err_f.write('Traceback: \n')
             err_f.write(traceback.format_exc())
         comm.Abort(1) # Term run early to prevent hang.
