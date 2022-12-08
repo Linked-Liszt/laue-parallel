@@ -12,7 +12,7 @@ file:
         key: '/entry1/data/data'
 
 comp:
-    server: 'local'
+    server: 'single'
     scanstart: 0
     scannumber: 1
     use_gpu: true
