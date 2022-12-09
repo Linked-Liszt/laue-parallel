@@ -3,10 +3,9 @@ ver: 1.0
 file:
     path: '/eagle/APSDataAnalysis/mprince/lau/data/Al30_thick_maskS1_Z'
     output: '/eagle/APSDataAnalysis/mprince/lau/output'
-    range: [1, 401, 1]
+    range: [0, 401, 1]
     threshold: 0 # [readout values]
-    #frame: [1000, 1256, 1000, 1256] # [pixels]
-    frame: [1000, 1128, 1000, 1128] # [pixels]
+    frame: [1000, 1512, 1000, 1512] # [pixels]
     ext: 'h5'
     stacked: True
     h5:
@@ -16,7 +15,7 @@ comp:
     server: 'single'
     scanstart: 1
     use_gpu: true
-    batch_size: 128
+    batch_size: 8
     scannumber: 1
     gridsize: 8
     workers: 1
