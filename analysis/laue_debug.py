@@ -175,8 +175,7 @@ def process_cold(args, cold_config: ColdConfig, time_data: TimeData, rank: int) 
     
     # Reconstruct
     cold.decode = time_wrap(cold.decode, time_data.times, 'cold_decode')
-    use_gpu = True
-    cr.pos, cr.sig, cr.scl = cold.decode(cr.data, cr.ind, cold_config.comp, cold_config.geo, cold_config.algo, debug=args.debug, use_gpu=use_gpu)
+    cr.pos, cr.sig, cr.scl = cold.decode(cr.data, cr.ind, cold_config.comp, cold_config.geo, cold_config.algo, debug=args.debug)
 
     cold.resolve = time_wrap(cold.resolve, time_data.times, 'cold_resolve')
     cr.dep, cr.lau = cold.resolve(cr.data, cr.ind, cr.pos, cr.sig, cold_config.geo, cold_config.comp)
