@@ -135,7 +135,7 @@ def spatial_decompose(comm, cold_config: ColdConfig, rank: int) -> ColdConfig:
     """
     cc = copy.deepcopy(cold_config)
 
-    no = cc.comp['scannumber']
+    no = 1 # TODO: Develop parallel runs in the same job
     gr = cc.comp['gridsize']
 
     size = comm.Get_size()
@@ -219,34 +219,41 @@ def parallel_laue(comm, args):
     rank = comm.Get_rank()
 
     cold_config = ColdConfig(*cold.config(args.config_path))
+
+    im_start = cold_config.comp['scanstart']
     if args.start_im is not None:
-        cold_config.comp['scanstart'] = args.start_im
-    
-    time_data = TimeData()
-    time_data.setup_start = datetime.datetime.now()
+        im_start = args.start_im
 
-    cold_config = spatial_decompose(comm, cold_config, rank)
+    start_range = cold_config.file['range']
+    for im_num in range(im_start, im_start + cold_config.comp['scannumber']):
+        cold_config.comp['scanstart'] = im_num
+        cold_config.file['range'] = start_range
 
-    out_dirs = make_paths(cold_config, rank)
-    comm.Barrier()
+        time_data = TimeData()
+        time_data.setup_start = datetime.datetime.now()
 
-    with open(os.path.join(out_dirs.config, f'{rank}.pkl'), 'wb') as conf_f:
-        pickle.dump(cold_config, conf_f)
+        cold_config = spatial_decompose(comm, cold_config, rank)
 
-    time_data.setup = (datetime.datetime.now() - time_data.setup_start).total_seconds()
+        out_dirs = make_paths(cold_config, rank)
+        comm.Barrier()
 
-    if args.dry_run:
-        exit()
+        with open(os.path.join(out_dirs.config, f'{rank}.pkl'), 'wb') as conf_f:
+            pickle.dump(cold_config, conf_f)
 
-    cold_result = process_cold(args, cold_config, time_data, rank)
+        time_data.setup = (datetime.datetime.now() - time_data.setup_start).total_seconds()
 
-    time_data.write_start = datetime.datetime.now()
-    write_output(cold_config, out_dirs, cold_result, rank)
-    write_time(out_dirs, time_data, rank)
+        if args.dry_run:
+            exit()
 
-    # Copy config to output
-    if rank == 0:
-        shutil.copy2(args.config_path, out_dirs.pfx)
+        cold_result = process_cold(args, cold_config, time_data, rank)
+
+        time_data.write_start = datetime.datetime.now()
+        write_output(cold_config, out_dirs, cold_result, rank)
+        write_time(out_dirs, time_data, rank)
+
+        # Copy config to output
+        if rank == 0:
+            shutil.copy2(args.config_path, out_dirs.pfx)
 
 
 if __name__ == '__main__':

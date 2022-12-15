@@ -12,7 +12,7 @@ IM_DIM = 2048
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description='Script to reconstruct output from a failed run.'
+        description='Script to reconstruct output from individual process results'
     )
     parser.add_argument(
         'backup_dir',
