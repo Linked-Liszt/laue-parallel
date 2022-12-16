@@ -44,11 +44,15 @@ def reconstruct_backup(base_path, scan_no, frame, im_num, all_dir):
         raise NotImplementedError("Can only reconstruct square images!")
 
     max_proc = -1
-    backup_dir = os.path.join(base_path, str(im_num + scan_no), PROC_OUT_DIR)
+    print(f'Rank {scan_no} processing im {im_num}')
+    if not os.path.exists(os.path.join(base_path, str(im_num))):
+        return 
+
+    backup_dir = os.path.join(base_path, str(im_num), PROC_OUT_DIR)
     if not os.path.exists(backup_dir):
         os.makedirs(backup_dir)
 
-    out_dir = os.path.join(base_path, str(im_num + scan_no), RECON_OUT_DIR)
+    out_dir = os.path.join(base_path, str(im_num), RECON_OUT_DIR)
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 

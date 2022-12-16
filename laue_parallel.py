@@ -225,9 +225,11 @@ def parallel_laue(comm, args):
         im_start = args.start_im
 
     start_range = cold_config.file['range']
+    start_frame = cold_config.file['frame']
     for im_num in range(im_start, im_start + cold_config.comp['scannumber']):
         cold_config.comp['scanstart'] = im_num
         cold_config.file['range'] = start_range
+        cold_config.file['frame'] = start_frame
 
         time_data = TimeData()
         time_data.setup_start = datetime.datetime.now()
