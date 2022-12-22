@@ -11,3 +11,6 @@ export HDF5_MPI="ON"
 export CC=/opt/cray/pe/craype/2.7.15/bin/cc
 ${PIP_PATH} uninstall --yes h5py
 ${PIP_PATH} install --no-binary=h5py h5py
+
+# Info to recompile mpi4py also appears to work with GNU over NVHPC
+# env MPICC=/opt/cray/pe/craype/2.7.15/bin/cc ${PIP_PATH} install --no-cache-dir mpi4py

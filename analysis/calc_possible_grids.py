@@ -59,7 +59,7 @@ def print_possible_nodes(config_fp, n_procs, max_nodes, thresh):
         gr_size += 1
         req_procs = gr_size ** 2
     
-    headers = ['Grid/Procs', 'Nodes/Procs', 'Diff', 'Num Pixels', 'Est. Time']
+    headers = ['Grid/Procs', 'Nodes/Procs', 'Unused', 'Num Pixels', 'Est. Time']
     print(tabulate(table_rows, headers, tablefmt='grid'))
 
         

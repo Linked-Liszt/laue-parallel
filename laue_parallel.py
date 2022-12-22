@@ -214,17 +214,19 @@ def write_output(cold_config: ColdConfig, out_dirs: OutDirs, cold_result: ColdRe
 def write_recon_p2p(cold_config: ColdConfig, start_frame, cold_result: ColdResult, comm) -> None:
     rank = comm.Get_rank()
     size = comm.Get_size()
-    
+
+    # Hold sends till rank 0 is ready
+    comm.Barrier()
 
     cold_result.frame = cold_config.file['frame']
     if rank != 0:
-        comm.send(cold_result, dest=0, tag=rank)
+        comm.send(cold_result, dest=0)
 
     else:
         dims, reshapes = build_recon_metadata(cold_config, cold_result)
         fill_reshapes(cold_result, start_frame, reshapes, dims)
         for recv_rank in range(1, size):
-            recv_result = comm.recv(source=recv_rank, tag=recv_rank)
+            recv_result = comm.recv(source=recv_rank)
             fill_reshapes(recv_result, start_frame, reshapes, dims)
 
         out_fp = os.path.join(cold_config.file['output'], 'all_out_debug') 
@@ -293,7 +295,6 @@ def parallel_laue(comm, args):
     start_range = cold_config.file['range']
     start_frame = cold_config.file['frame']
     for im_num in range(im_start, im_start + cold_config.comp['scannumber']):
-        comm.Barrier()
         cold_config.comp['scanstart'] = im_num
         cold_config.file['range'] = start_range
         cold_config.file['frame'] = start_frame
@@ -317,7 +318,7 @@ def parallel_laue(comm, args):
         cold_result = process_cold(args, cold_config, time_data, rank)
 
         write_output(cold_config, out_dirs, cold_result, rank)
-
+        
         time_data.write_start = datetime.datetime.now()
         write_recon_p2p(cold_config, start_frame, cold_result, comm)
 
@@ -326,6 +327,16 @@ def parallel_laue(comm, args):
         # Copy config to output
         if rank == 0:
             shutil.copy2(args.config_path, out_dirs.pfx)
+        
+
+def force_write_log(rank: int, msg: str) -> None:
+    """
+    Use this to force writes for debugging. PBS sometimes doesn't flush
+    std* outputs. MPI faults clobber greedy flushing of default python
+    logs.
+    """
+    with open(f'{rank}.log', 'a') as log_f:
+        log_f.write(f'{datetime.datetime.now()} | {msg}\n')
 
 
 if __name__ == '__main__':
