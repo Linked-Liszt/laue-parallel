@@ -2,7 +2,6 @@ import h5py
 import argparse
 import os
 import numpy as np
-import math
 import cold
 from typing import Dict, List, Tuple, BinaryIO
 from mpi4py import MPI

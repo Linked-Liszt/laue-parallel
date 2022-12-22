@@ -16,7 +16,7 @@ PROD_CMD = [
     '-l'
     f'select={NUM_NODES}:system=polaris',
     '-l'
-    'walltime=1:00:00',
+    'walltime=02:00:00',
     '-l',
     'filesystems=home:eagle',
     '-l',

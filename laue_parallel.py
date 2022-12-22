@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-from faulthandler import disable
 import cold
 import h5py
 import numpy as np

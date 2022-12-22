@@ -1,5 +1,4 @@
 import argparse
-import argparse
 import numpy as np
 import h5py
 

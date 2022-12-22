@@ -1,9 +1,6 @@
 import argparse
-import argparse
-from asyncio import gather
 import json
 import os
-from time import time
 import numpy as np
 
 TIME_INTRVALS = ['setup_time', 'cold_load', 'cold_decode', 'cold_resolve', 'write_time', 'walltime']
