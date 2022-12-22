@@ -2,6 +2,7 @@ import h5py
 import sys
 import argparse
 import os
+import numpy as np
 
 
 def readhdf(fname):
@@ -11,6 +12,8 @@ def readhdf(fname):
           if isinstance(v, h5py.Dataset):
               print('dataset ' + v.name)
               print(f'dataset shape: {v.shape}')
+              print(f'dtype {v.dtype}')
+              #print(f'dataset: {np.array(v)}')
 
   with h5py.File(fname, 'r') as f:
       scan_node(f)

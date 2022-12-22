@@ -78,7 +78,13 @@ class ColdResult():
     scl = None
     dep = None
     lau = None
+    frame = None
 
+    # Allow for easy iteration 
+    def __getitem__(self, item):
+        return getattr(self, item)
+
+OUT_DSETS = ['pos', 'sig', 'ind', 'lau']
 
 def time_wrap(func, time_data: dict, time_key: str):
     """
@@ -192,14 +198,75 @@ def write_output(cold_config: ColdConfig, out_dirs: OutDirs, cold_result: ColdRe
 
     TODO: Could be performed over MPI or h5+MPI but data seems too large for infrastructure, so would likely 
           require some sort of batching system to do in the same script.
+
+    NOTE: Via collective testing (https://github.com/h5py/h5py/blob/master/examples/collective_io.py)
+          this implementation of parallel HDF5 does NOT yield perf gains writing to the same dset. 
+
+    NOTE: Also, parallel hdf5 appears to crash infrastructure when running ACROSS nodes. Single
+          node, 8-32 ranks seems to work without issue. 
     """
     with h5py.File(os.path.join(out_dirs.proc_results, f'{cold_config.pointer}.hd5'), 'w') as hf:
-        hf.create_dataset('pos', data=cold_result.pos)
-        hf.create_dataset('sig', data=cold_result.sig)
-        hf.create_dataset('ind', data=cold_result.ind)
-        hf.create_dataset('lau', data=cold_result.lau)
+        for dset in OUT_DSETS:
+            hf.create_dataset(dset, data=cold_result[dset])
         hf.create_dataset('frame', data=cold_config.file['frame'])
     print(f'Proc {rank} finished backup')
+
+
+def write_recon_p2p(cold_config: ColdConfig, start_frame, cold_result: ColdResult, comm) -> None:
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+    
+
+    cold_result.frame = cold_config.file['frame']
+    if rank != 0:
+        comm.send(cold_result, dest=0, tag=rank)
+
+    else:
+        dims, reshapes = build_recon_metadata(cold_config, cold_result)
+        fill_reshapes(cold_result, start_frame, reshapes, dims)
+        for recv_rank in range(1, size):
+            recv_result = comm.recv(source=recv_rank, tag=recv_rank)
+            fill_reshapes(recv_result, start_frame, reshapes, dims)
+
+        out_fp = os.path.join(cold_config.file['output'], 'all_out_debug') 
+        if not os.path.exists(out_fp):
+            os.makedirs(out_fp)
+
+        with h5py.File(os.path.join(out_fp, f"im_{cold_config.comp['scanstart']}.hd5"), 'w') as h5_f_out:
+            for ds_path in OUT_DSETS:
+                h5_f_out.create_dataset(ds_path, data=reshapes[ds_path])
+
+
+def fill_reshapes(cold_result, start_frame, reshapes, dims):
+    proc_ind = copy.deepcopy(cold_result.ind)
+    proc_ind[:,0] -= start_frame[0]
+    proc_ind[:,1] -= start_frame[2]
+    for ds_path in OUT_DSETS:
+        ds = cold_result[ds_path]
+        for j, ind in enumerate(proc_ind):
+            if len(dims[ds_path]) == 1:
+                reshapes[ds_path][ind[0], ind[1]] = ds[j]
+
+            elif len(dims[ds_path]) == 2:
+                reshapes[ds_path][:, ind[0], ind[1]] = ds[j]
+
+
+def build_recon_metadata(cold_config, cold_result):
+    dims = {}
+    for ds_path in OUT_DSETS:
+        dims[ds_path] = cold_result[ds_path].shape
+
+    im_dim = (cold_config.file['frame'][1] - cold_config.file['frame'][0]) * cold_config.comp['gridsize']
+
+    reshapes = {}
+    for ds_path in OUT_DSETS:
+        if len(dims[ds_path]) == 1:
+            reshapes[ds_path]= np.zeros((im_dim, im_dim))
+
+        elif len(dims[ds_path]) == 2:
+            reshapes[ds_path] = np.zeros((dims[ds_path][1], im_dim, im_dim))
+
+    return dims, reshapes
 
 
 def write_time(out_dirs: OutDirs, time_data: TimeData, rank: int) -> None:
@@ -227,6 +294,7 @@ def parallel_laue(comm, args):
     start_range = cold_config.file['range']
     start_frame = cold_config.file['frame']
     for im_num in range(im_start, im_start + cold_config.comp['scannumber']):
+        comm.Barrier()
         cold_config.comp['scanstart'] = im_num
         cold_config.file['range'] = start_range
         cold_config.file['frame'] = start_frame
@@ -249,8 +317,11 @@ def parallel_laue(comm, args):
 
         cold_result = process_cold(args, cold_config, time_data, rank)
 
-        time_data.write_start = datetime.datetime.now()
         write_output(cold_config, out_dirs, cold_result, rank)
+
+        time_data.write_start = datetime.datetime.now()
+        write_recon_p2p(cold_config, start_frame, cold_result, comm)
+
         write_time(out_dirs, time_data, rank)
 
         # Copy config to output

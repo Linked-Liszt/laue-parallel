@@ -8,6 +8,7 @@ import numpy as np
 import math
 import cold
 import shutil
+import datetime
 
 DATASETS = ['lau', 'pos', 'sig', 'ind']
 IND_PATH = 'ind'
@@ -36,6 +37,7 @@ def parse_args():
 
 
 def reconstruct_backup(base_path, scan_no, frame, im_num, all_dir):
+    start_time = datetime.datetime.now()
     dim_y = frame[1] - frame[0]
     dim_x = frame[3] - frame[2]
     im_dim = dim_y
@@ -63,6 +65,7 @@ def reconstruct_backup(base_path, scan_no, frame, im_num, all_dir):
     max_proc += 1
     print(f'Found max rank: {max_proc}')
 
+
     dims = {}
     avail_datasets = []
     with h5py.File(os.path.join(backup_dir, f'0.hd5'), 'r') as h5_f:
@@ -85,6 +88,7 @@ def reconstruct_backup(base_path, scan_no, frame, im_num, all_dir):
         elif len(dims[ds_path]) == 2:
             reshapes[ds_path] = np.zeros((im_dim, im_dim, dims[ds_path][1]))
 
+    read_time = datetime.datetime.now()
 
     print('Placing proc data')
     for i in range(max_proc):
@@ -106,10 +110,17 @@ def reconstruct_backup(base_path, scan_no, frame, im_num, all_dir):
             reshapes[ds_path] = np.swapaxes(reshapes[ds_path], 0, 2)
             reshapes[ds_path] = np.swapaxes(reshapes[ds_path], 1, 2)
 
+    write_time = datetime.datetime.now()
     print('Writing out')
     with h5py.File(os.path.join(out_dir, f'im_{im_num}_r{scan_no}.hd5'), 'w') as h5_f_out:
         for ds_path in avail_datasets:
             h5_f_out.create_dataset(ds_path, data=reshapes[ds_path])
+
+    with open(f'time.log', 'a+') as time_f:
+        end_time = datetime.datetime.now()
+        time_f.write(f'wt: {(end_time - write_time).total_seconds()}\n'
+                     +f'{(end_time-read_time).total_seconds()}\n'
+                     +f'{(end_time-start_time).total_seconds()}\n\n')
     
     shutil.copy2(os.path.join(out_dir, f'im_{im_num}_r{scan_no}.hd5'), os.path.join(all_dir, f'im_{im_num}_r{scan_no}.hd5'))
 

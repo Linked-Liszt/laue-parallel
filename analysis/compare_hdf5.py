@@ -3,7 +3,7 @@ import argparse
 import numpy as np
 import h5py
 
-paths = ['lau', 'pos', 'sig', 'scl']
+paths = ['lau', 'pos', 'sig', 'ind']
 
 def parse_args():
     parser = argparse.ArgumentParser()
