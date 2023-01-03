@@ -34,6 +34,11 @@ def parse_args():
         help='Prints cold grid allocations and terminates run before processing'
     )
     parser.add_argument(
+        '--mpi_recon',
+        action='store_true',
+        help='Enable reconstruction of individual proc data over MPI'
+    )
+    parser.add_argument(
         '--start_im',
         type=int,
         help='Specify a start image through command line.'
@@ -199,10 +204,8 @@ def write_output(cold_config: ColdConfig, out_dirs: OutDirs, cold_result: ColdRe
           require some sort of batching system to do in the same script.
 
     NOTE: Via collective testing (https://github.com/h5py/h5py/blob/master/examples/collective_io.py)
-          this implementation of parallel HDF5 does NOT yield perf gains writing to the same dset. 
-
-    NOTE: Also, parallel hdf5 appears to crash infrastructure when running ACROSS nodes. Single
-          node, 8-32 ranks seems to work without issue. 
+          this implementation of parallel HDF5 does NOT yield perf gains writing to the same dset, unless
+          across multiple nodes.
     """
     with h5py.File(os.path.join(out_dirs.proc_results, f'{cold_config.pointer}.hd5'), 'w') as hf:
         for dset in OUT_DSETS:
@@ -212,6 +215,14 @@ def write_output(cold_config: ColdConfig, out_dirs: OutDirs, cold_result: ColdRe
 
 
 def write_recon_p2p(cold_config: ColdConfig, start_frame, cold_result: ColdResult, comm) -> None:
+    """
+    Reconstruct single hdf5 file output, transferring data via MPI.
+    MPI performs significantly faster than disk-based transfer. 
+
+    NOTE: Collective operations at this scale break, so use p2p transfer.
+          Also could use parallel HDF5 for more speedup, likely a reduced set
+          of write ranks.
+    """
     rank = comm.Get_rank()
     size = comm.Get_size()
 
@@ -229,13 +240,15 @@ def write_recon_p2p(cold_config: ColdConfig, start_frame, cold_result: ColdResul
             recv_result = comm.recv(source=recv_rank)
             fill_reshapes(recv_result, start_frame, reshapes, dims)
 
-        out_fp = os.path.join(cold_config.file['output'], 'all_out_debug') 
+        out_fp = os.path.join(cold_config.file['output'], 'all_recons_mpi') 
         if not os.path.exists(out_fp):
             os.makedirs(out_fp)
 
         with h5py.File(os.path.join(out_fp, f"im_{cold_config.comp['scanstart']}.hd5"), 'w') as h5_f_out:
             for ds_path in OUT_DSETS:
                 h5_f_out.create_dataset(ds_path, data=reshapes[ds_path])
+
+    comm.Barrier()
 
 
 def fill_reshapes(cold_result, start_frame, reshapes, dims):
@@ -317,10 +330,11 @@ def parallel_laue(comm, args):
 
         cold_result = process_cold(args, cold_config, time_data, rank)
 
-        write_output(cold_config, out_dirs, cold_result, rank)
-        
         time_data.write_start = datetime.datetime.now()
-        write_recon_p2p(cold_config, start_frame, cold_result, comm)
+        write_output(cold_config, out_dirs, cold_result, rank)
+
+        if args.mpi_recon:
+            write_recon_p2p(cold_config, start_frame, cold_result, comm)
 
         write_time(out_dirs, time_data, rank)
 

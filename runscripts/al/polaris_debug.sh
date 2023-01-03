@@ -25,11 +25,12 @@ mpiexec -n \${NTOTRANKS} --ppn \${NRANKS_PER_NODE} --depth=\${NDEPTH} --cpu-bind
     ../laue_parallel.py \\
     ${CONFIG_PATH} \\
     --start_im ${START_IM} \\
+    --mpi_recon
 
 mpiexec -n \${NTOTRANKS} --ppn \${NRANKS_PER_NODE} --depth=\${NDEPTH} --cpu-bind depth --env OMP_NUM_THREADS=\${NTHREADS} -env OMP_PLACES=threads \\
     ${AFFINITY_PATH} \\
     ${PYTHON_PATH} \\
-    ../recon_mpi.py \\
+    ../recon_parallel.py \\
     ${CONFIG_PATH} \\
     --start_im ${START_IM} \\
 " | \

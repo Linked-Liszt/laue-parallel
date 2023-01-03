@@ -113,12 +113,6 @@ def reconstruct_backup(base_path, scan_no, frame, im_num, all_dir):
         for ds_path in avail_datasets:
             h5_f_out.create_dataset(ds_path, data=reshapes[ds_path])
 
-    with open(f'time.log', 'a+') as time_f:
-        end_time = datetime.datetime.now()
-        time_f.write(f'wt: {(end_time - write_time).total_seconds()}\n'
-                     +f'{(end_time-read_time).total_seconds()}\n'
-                     +f'{(end_time-start_time).total_seconds()}\n\n')
-    
     shutil.copy2(os.path.join(out_dir, f'im_{im_num}_r{scan_no}.hd5'), os.path.join(all_dir, f'im_{im_num}_r{scan_no}.hd5'))
 
 def recon_manual_from_config(config_fp, path_override, override_start=None):
