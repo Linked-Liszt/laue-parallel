@@ -1,12 +1,11 @@
-NUM_NODES=8
-RANKS_PER_NODE=32
+NUM_NODES=1
+RANKS_PER_NODE=1
 START_IM=0
-PROJ_NAME=ks_run_400
-QUEUE=preemptable
+PROJ_NAME=laue_gpu_profile
 
 AFFINITY_PATH=../runscripts/set_gpu_affinity.sh
 PYTHON_PATH=/eagle/projects/APSDataAnalysis/mprince/lau_env_polaris/bin/python 
-CONFIG_PATH=../configs/KS_10UN2/prod-400-config-KS_10UN2_mask.yml
+CONFIG_PATH=../configs/AL30/config-64_gpu.yml
 
 echo "
 cd \${PBS_O_WORKDIR}
@@ -22,17 +21,17 @@ echo \"NUM_OF_NODES= \${NNODES} TOTAL_NUM_RANKS= \${NTOTRANKS} RANKS_PER_NODE= \
 
 mpiexec -n \${NTOTRANKS} --ppn \${NRANKS_PER_NODE} --depth=\${NDEPTH} --cpu-bind depth --env OMP_NUM_THREADS=\${NTHREADS} -env OMP_PLACES=threads \\
     ${AFFINITY_PATH} \\
+    nsys profile -o laue \\
     ${PYTHON_PATH} \\
-    ../laue_parallel.py \\
+    ../laue_parallel_gpu_only.py \\
     ${CONFIG_PATH} \\
     --start_im ${START_IM} \\
-    --mpi_recon
 
 " | \
 qsub -A APSDataAnalysis \
--q ${QUEUE} \
+-q debug \
 -l select=${NUM_NODES}:system=polaris \
--l walltime=12:00:00 \
+-l walltime=0:30:00 \
 -l filesystems=home:eagle \
 -l place=scatter \
 -N ${PROJ_NAME} 

@@ -12,7 +12,7 @@ file:
         key: '/entry1/data/data'
 
 comp:
-    server: 'local'
+    server: 'jax'
     scannumber: 1
     gridsize: 64
     workers: 1

@@ -2,7 +2,7 @@ ver: 1.0
 
 file:
     path: /eagle/APSDataAnalysis/mprince/lau/data/KS_10UN2_mask
-    output: '/eagle/APSDataAnalysis/mprince/lau/outputs/output_ks_batch'
+    output: '/eagle/APSDataAnalysis/mprince/lau/outputs/output_ks_debug_gnu'
     range: [0, 201, 1]
     threshold: 0 # [readout values]
     frame: [580, 1780, 500, 1700] # [pixels]
@@ -12,9 +12,9 @@ file:
         key: '/entry1/data/data'
 
 comp:
-    server: 'single'
+    server: 'jax'
     scanstart: 0
-    scannumber: 18
+    scannumber: 32
     use_gpu: true
     batch_size: 8
     workers: 1

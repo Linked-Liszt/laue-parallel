@@ -6,6 +6,7 @@
 .loglogin
 .vscode
 runscripts_prod
+runscripts_temp
 output
 profiles
 
