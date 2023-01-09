@@ -16,12 +16,15 @@ NRANKS_PER_NODE=${RANKS_PER_NODE}
 NDEPTH=2
 NTHREADS=2
 
+export nsysOutput=output_A100_nsys\${PMI_RANK}
+echo \"nsysOutput=\$nsysOutput\"
+
 NTOTRANKS=\$(( NNODES * NRANKS_PER_NODE ))
 echo \"NUM_OF_NODES= \${NNODES} TOTAL_NUM_RANKS= \${NTOTRANKS} RANKS_PER_NODE= \${NRANKS_PER_NODE} THREADS_PER_RANK= \${NTHREADS}\"
 
 mpiexec -n \${NTOTRANKS} --ppn \${NRANKS_PER_NODE} --depth=\${NDEPTH} --cpu-bind depth --env OMP_NUM_THREADS=\${NTHREADS} -env OMP_PLACES=threads \\
     ${AFFINITY_PATH} \\
-    nsys profile -o laue \\
+    nsys profile \\
     ${PYTHON_PATH} \\
     ../laue_parallel_gpu_only.py \\
     ${CONFIG_PATH} \\

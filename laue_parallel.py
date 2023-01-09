@@ -301,6 +301,9 @@ def parallel_laue(comm, args):
 
     cold_config = ColdConfig(*cold.config(args.config_path))
 
+    if 'CUDA_VISIBLE_DEVICES' not in os.environ or os.environ['CUDA_VISIBLE_DEVICES'] == "":
+        cold_config.comp['batch_size'] = 8 
+ 
     im_start = cold_config.comp['scanstart']
     if args.start_im is not None:
         im_start = args.start_im
