@@ -48,6 +48,11 @@ def parse_args():
         action='store_true',
         help='Activate cprofile for the 0th rank',
     )
+    parser.add_argument(
+        '--no_rank_check',
+        action='store_true',
+        help='Debug feature to ignore the check for number of ranks',
+    )
     return parser.parse_args()
 
 
@@ -134,7 +139,7 @@ def make_paths(cold_config: ColdConfig, rank: int) -> OutDirs:
     return out_dirs
 
 
-def spatial_decompose(comm, cold_config: ColdConfig, rank: int) -> ColdConfig:
+def spatial_decompose(comm, cold_config: ColdConfig, rank: int, no_rank_check: bool) -> ColdConfig:
     """
     Perform the calculations to determine what area of the image a single the
     process should perform calculations on. 
@@ -167,7 +172,7 @@ def spatial_decompose(comm, cold_config: ColdConfig, rank: int) -> ColdConfig:
     print(size, rank, cc.file['range'], cc.file['frame'], cc.scanpoint, cc.pointer, m, n)
 
     valid_num_procs = (gr ** 2) * no 
-    if valid_num_procs != size:
+    if not no_rank_check and valid_num_procs != size:
         raise ValueError(f"Incorrect number of procs assigned! Procs must equal gridsize^2 * scannumber. Num proces expected: {valid_num_procs}")
     
     return cc
@@ -301,8 +306,11 @@ def parallel_laue(comm, args):
 
     cold_config = ColdConfig(*cold.config(args.config_path))
 
-    if 'CUDA_VISIBLE_DEVICES' not in os.environ or os.environ['CUDA_VISIBLE_DEVICES'] == "":
-        cold_config.comp['batch_size'] = 8 
+    if ('CUDA_VISIBLE_DEVICES' not in os.environ 
+         or os.environ['CUDA_VISIBLE_DEVICES'] == ""
+         or os.environ['CUDA_VISIBLE_DEVICES'] == "N"):
+        print(f'R: {rank} overriding batch size to 8')
+        cold_config.comp['batch_size'] = 8
  
     im_start = cold_config.comp['scanstart']
     if args.start_im is not None:
@@ -318,7 +326,7 @@ def parallel_laue(comm, args):
         time_data = TimeData()
         time_data.setup_start = datetime.datetime.now()
 
-        cold_config = spatial_decompose(comm, cold_config, rank)
+        cold_config = spatial_decompose(comm, cold_config, rank, args.no_rank_check)
 
         out_dirs = make_paths(cold_config, rank)
         comm.Barrier()

@@ -4,13 +4,13 @@ from tabulate import tabulate
 
 paths = ['lau', 'pos', 'sig', 'ind']
 
-EST_PX_SEC = 12.0
+EST_PX_SEC = 150
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('config_fp')
     parser.add_argument('--n',
-                        default=32,
+                        default=16,
                         type=int,
                         help='number of processes per node')
     parser.add_argument('--max',

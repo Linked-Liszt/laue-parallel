@@ -1,11 +1,13 @@
+#!/bin/bash
 NUM_NODES=1
-RANKS_PER_NODE=1
+RANKS_PER_NODE=8
 START_IM=0
 PROJ_NAME=laue_gpu_profile
 
 AFFINITY_PATH=../runscripts/set_gpu_affinity.sh
 PYTHON_PATH=/eagle/projects/APSDataAnalysis/mprince/lau_env_polaris/bin/python 
 CONFIG_PATH=../configs/AL30/config-64_gpu.yml
+PROFILE_PATH=../runscripts/profile/polaris_profile_exec.sh
 
 echo "
 cd \${PBS_O_WORKDIR}
@@ -23,13 +25,7 @@ NTOTRANKS=\$(( NNODES * NRANKS_PER_NODE ))
 echo \"NUM_OF_NODES= \${NNODES} TOTAL_NUM_RANKS= \${NTOTRANKS} RANKS_PER_NODE= \${NRANKS_PER_NODE} THREADS_PER_RANK= \${NTHREADS}\"
 
 mpiexec -n \${NTOTRANKS} --ppn \${NRANKS_PER_NODE} --depth=\${NDEPTH} --cpu-bind depth --env OMP_NUM_THREADS=\${NTHREADS} -env OMP_PLACES=threads \\
-    ${AFFINITY_PATH} \\
-    nsys profile \\
-    ${PYTHON_PATH} \\
-    ../laue_parallel_gpu_only.py \\
-    ${CONFIG_PATH} \\
-    --start_im ${START_IM} \\
-
+    ${PROFILE_PATH}
 " | \
 qsub -A APSDataAnalysis \
 -q debug \
