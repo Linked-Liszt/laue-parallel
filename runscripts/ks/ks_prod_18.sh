@@ -4,7 +4,7 @@ START_IM=0
 PROJ_NAME=ks_robust_test
 
 AFFINITY_PATH=../runscripts/set_gpu_affinity.sh
-PYTHON_PATH=/eagle/projects/APSDataAnalysis/mprince/lau_env_polaris/bin/python 
+PYTHONPATH=/eagle/projects/APSDataAnalysis/mprince/lau_env_polaris/bin/python 
 CONFIG_PATH=../configs/KS_10UN2/prod-config-KS_10UN2_mask_full.yml
 
 echo "
@@ -21,7 +21,7 @@ echo \"NUM_OF_NODES= \${NNODES} TOTAL_NUM_RANKS= \${NTOTRANKS} RANKS_PER_NODE= \
 
 mpiexec -n \${NTOTRANKS} --ppn \${NRANKS_PER_NODE} --depth=\${NDEPTH} --cpu-bind depth --env OMP_NUM_THREADS=\${NTHREADS} -env OMP_PLACES=threads \\
     ${AFFINITY_PATH} \\
-    ${PYTHON_PATH} \\
+    ${PYTHONPATH} \\
     ../laue_parallel.py \\
     ${CONFIG_PATH} \\
     --start_im ${START_IM} \\

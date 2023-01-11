@@ -1,11 +1,11 @@
 #!/bin/bash
 NUM_NODES=1
-RANKS_PER_NODE=8
+RANKS_PER_NODE=2
 START_IM=0
 PROJ_NAME=laue_gpu_profile
 
 AFFINITY_PATH=../runscripts/set_gpu_affinity.sh
-PYTHON_PATH=/eagle/projects/APSDataAnalysis/mprince/lau_env_polaris/bin/python 
+PYTHONPATH=/eagle/projects/APSDataAnalysis/mprince/lau_env_polaris/bin/python 
 CONFIG_PATH=../configs/AL30/config-64_gpu.yml
 PROFILE_PATH=../runscripts/profile/polaris_profile_exec.sh
 
@@ -17,9 +17,6 @@ NNODES=\`wc -l < \$PBS_NODEFILE\`
 NRANKS_PER_NODE=${RANKS_PER_NODE}
 NDEPTH=2
 NTHREADS=2
-
-export nsysOutput=output_A100_nsys\${PMI_RANK}
-echo \"nsysOutput=\$nsysOutput\"
 
 NTOTRANKS=\$(( NNODES * NRANKS_PER_NODE ))
 echo \"NUM_OF_NODES= \${NNODES} TOTAL_NUM_RANKS= \${NTOTRANKS} RANKS_PER_NODE= \${NRANKS_PER_NODE} THREADS_PER_RANK= \${NTHREADS}\"

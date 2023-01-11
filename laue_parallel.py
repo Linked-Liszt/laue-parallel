@@ -296,6 +296,7 @@ def write_time(out_dirs: OutDirs, time_data: TimeData, rank: int) -> None:
     time_data.times['walltime'] = (datetime.datetime.now() - time_data.setup_start).total_seconds()
     with open(os.path.join(out_dirs.time, f'proc_{rank}.json'), 'w') as time_f:
             json.dump(time_data.times, time_f)
+    print(time_data.times)
 
 def parallel_laue(comm, args):
     """

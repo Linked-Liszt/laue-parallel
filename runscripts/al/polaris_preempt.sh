@@ -1,7 +1,8 @@
-NUM_NODES=10
-RANKS_PER_NODE=1
+NUM_NODES=8
+RANKS_PER_NODE=8
 START_IM=0
-PROJ_NAME=hdf5_bench
+PROJ_NAME=laue_scaling_test
+QUEUE=preemptable
 
 AFFINITY_PATH=../runscripts/set_gpu_affinity.sh
 PYTHONPATH=/eagle/projects/APSDataAnalysis/mprince/lau_env_polaris/bin/python 
@@ -22,12 +23,19 @@ echo \"NUM_OF_NODES= \${NNODES} TOTAL_NUM_RANKS= \${NTOTRANKS} RANKS_PER_NODE= \
 mpiexec -n \${NTOTRANKS} --ppn \${NRANKS_PER_NODE} --depth=\${NDEPTH} --cpu-bind depth --env OMP_NUM_THREADS=\${NTHREADS} -env OMP_PLACES=threads \\
     ${AFFINITY_PATH} \\
     ${PYTHONPATH} \\
-    ../test.py \\
+    ../laue_parallel.py \\
+    ${CONFIG_PATH} \\
+    --start_im ${START_IM} \\
+
+mpiexec -n \${NNODES} --ppn 1 --depth=\${NDEPTH} --cpu-bind depth --env OMP_NUM_THREADS=\${NTHREADS} -env OMP_PLACES=threads \\
+    ${AFFINITY_PATH} \\
+    ${PYTHONPATH} \\
+    ../recon_parallel.py \\
     ${CONFIG_PATH} \\
     --start_im ${START_IM} \\
 " | \
 qsub -A APSDataAnalysis \
--q debug-scaling \
+-q ${QUEUE} \
 -l select=${NUM_NODES}:system=polaris \
 -l walltime=0:50:00 \
 -l filesystems=home:eagle \

@@ -2,7 +2,7 @@ ver: 1.0
 
 file:
     path: /eagle/APSDataAnalysis/mprince/lau/data/KS_10UN2_mask
-    output: '../outputs/output_ks_debug_gnu'
+    output: '../outputs/output_ks_32'
     range: [0, 201, 1]
     threshold: 0 # [readout values]
     frame: [580, 1780, 500, 1700] # [pixels]
@@ -14,11 +14,11 @@ file:
 comp:
     server: 'jax'
     scanstart: 0
-    scannumber: 32
+    scannumber: 1
     use_gpu: true
     batch_size: 8
     workers: 1
-    gridsize: 24
+    gridsize: 16
     h5parallel: False
     functionid: 'd8461388-9442-4008-a5f1-2cfa112f6923'
 

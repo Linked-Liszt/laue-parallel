@@ -2,10 +2,10 @@ ver: 1.0
 
 file:
     path: '/eagle/APSDataAnalysis/mprince/lau/data/Al30_thick_maskS1_Z'
-    output: '/eagle/APSDataAnalysis/mprince/lau/outputs/debug_al_gpu'
+    output: '../outputs/gpu_debug'
     range: [0, 401, 1]
     threshold: 0 # [readout values]
-    frame: [1000, 1768, 1000, 1768] # [pixels]
+    frame: [1000, 1128, 1000, 1128] # [pixels]
     ext: 'h5'
     stacked: True
     h5:
@@ -17,7 +17,7 @@ comp:
     scanstart: 1
     batch_size: 3000
     scannumber: 1
-    gridsize: 8
+    gridsize: 4
     functionid: 'd8461388-9442-4008-a5f1-2cfa112f6923'
 
 geo:

@@ -2,7 +2,7 @@ ver: 1.0
 
 file:
     path: '/eagle/APSDataAnalysis/mprince/lau/data/Al30_thick_maskS1_Z'
-    output: '/eagle/APSDataAnalysis/mprince/lau/outputs/output_debug'
+    output: '../outputs/debug_al_full'
     range: [0, 401, 1]
     threshold: 0 # [readout values]
     frame: [0, 2048, 0, 2048] # [pixels]
@@ -15,9 +15,9 @@ comp:
     server: 'jax'
     scanstart: 1
     use_gpu: true
-    batch_size: 8
+    batch_size: 3000
     scannumber: 1
-    gridsize: 32
+    gridsize: 8
     workers: 1
     h5parallel: False
     functionid: 'd8461388-9442-4008-a5f1-2cfa112f6923'

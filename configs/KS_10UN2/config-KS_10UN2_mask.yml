@@ -2,7 +2,7 @@ ver: 1.0
 
 file:
     path: /eagle/APSDataAnalysis/mprince/lau/data/KS_10UN2_mask
-    output: '/eagle/APSDataAnalysis/mprince/lau/outputs/output_debug'
+    output: '../outputs/output_debug'
     range: [0, 201, 1]
     threshold: 0 # [readout values]
     frame: [580, 596, 580, 596] # [pixels]

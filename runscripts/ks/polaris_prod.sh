@@ -1,10 +1,10 @@
 NUM_NODES=18
 RANKS_PER_NODE=32
 START_IM=0
-PROJ_NAME=mpi_recon_timing
+PROJ_NAME=ks_timing_test
 
 AFFINITY_PATH=../runscripts/set_gpu_affinity.sh
-PYTHON_PATH=/eagle/projects/APSDataAnalysis/mprince/lau_env_polaris/bin/python 
+PYTHONPATH=/eagle/projects/APSDataAnalysis/mprince/lau_env_polaris/bin/python 
 CONFIG_PATH=../configs/KS_10UN2/prod-config-KS_10UN2_mask.yml
 
 echo "
@@ -21,21 +21,20 @@ echo \"NUM_OF_NODES= \${NNODES} TOTAL_NUM_RANKS= \${NTOTRANKS} RANKS_PER_NODE= \
 
 mpiexec -n \${NTOTRANKS} --ppn \${NRANKS_PER_NODE} --depth=\${NDEPTH} --cpu-bind depth --env OMP_NUM_THREADS=\${NTHREADS} -env OMP_PLACES=threads \\
     ${AFFINITY_PATH} \\
-    ${PYTHON_PATH} \\
+    ${PYTHONPATH} \\
     ../laue_parallel.py \\
     ${CONFIG_PATH} \\
     --start_im ${START_IM} \\
-    --profile
 
 mpiexec -n \${NTOTRANKS} --ppn \${NRANKS_PER_NODE} --depth=\${NDEPTH} --cpu-bind depth --env OMP_NUM_THREADS=\${NTHREADS} -env OMP_PLACES=threads \\
     ${AFFINITY_PATH} \\
-    ${PYTHON_PATH} \\
-    ../recon_mpi.py \\
+    ${PYTHONPATH} \\
+    ../recon_parallel.py \\
     ${CONFIG_PATH} \\
     --start_im ${START_IM} \\
 " | \
 qsub -A APSDataAnalysis \
--q prod \
+-q preemptable \
 -l select=${NUM_NODES}:system=polaris \
 -l walltime=0:50:00 \
 -l filesystems=home:eagle \
