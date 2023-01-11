@@ -8,6 +8,7 @@
 runscripts_prod
 runscripts_temp
 output
+outputs
 profiles
 
 logs*
