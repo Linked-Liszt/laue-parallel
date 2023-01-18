@@ -116,24 +116,23 @@ def make_paths(cold_config: ColdConfig, rank: int) -> OutDirs:
     """
     out_dirs = OutDirs
 
-    num_grid = cold_config.comp['gridsize'] ** 2
-    im_num = cold_config.comp['scanstart'] + (rank // num_grid)
+    im_num = cold_config.comp['scanstart'] 
     print(f"Rank {rank} processing IM: {im_num}")
 
     out_dirs.pfx = os.path.join(cold_config.file['output'], str(im_num))
 
     out_dirs.time = os.path.join(out_dirs.pfx, 'time_logs')
-    if rank % num_grid == 0:
+    if rank == 0:
         if not os.path.exists(out_dirs.time):
             os.makedirs(out_dirs.time)
     
     out_dirs.proc_results = os.path.join(out_dirs.pfx, 'proc_results')
-    if rank % num_grid == 0:
+    if rank == 0:
         if not os.path.exists(out_dirs.proc_results):
             os.makedirs(out_dirs.proc_results)
 
     out_dirs.config = os.path.join(out_dirs.pfx, 'configs')
-    if rank % num_grid == 0:
+    if rank == 0:
         if not os.path.exists(out_dirs.config):
             os.makedirs(out_dirs.config)
     
@@ -153,12 +152,10 @@ def spatial_decompose(comm, cold_config: ColdConfig, rank: int, no_load_balance:
     cc = copy.deepcopy(cold_config)
 
     no = 1 # TODO: Develop parallel runs in the same job
-    gr = cc.comp['gridsize']
 
     size = comm.Get_size()
 
     cc.scanpoint, cc.pointer = np.divmod(rank, size // no)
-    m, n = np.divmod(cc.pointer % (gr ** 2), gr)
 
     cc.file['range'] = [int((cc.comp['scanstart'] + cc.scanpoint) * cc.file['range'][1]), 
                                  int((cc.comp['scanstart'] + cc.scanpoint + 1) * cc.file['range'][1]), 
@@ -169,8 +166,15 @@ def spatial_decompose(comm, cold_config: ColdConfig, rank: int, no_load_balance:
         proc_lines, rem = divmod(n_lines, size)
         frame_start = rank * proc_lines + min(rank, rem)
         frame_end = (rank + 1) * proc_lines + min(rank + 1, rem)
+        cc.comp['batch_size'] = cc.comp['batch_size_cpu']
+        cc.comp['use_gpu'] = False
     else:
-        frame_start, frame_end = load_balance(rank, size, n_lines)
+        frame_start, frame_end, is_gpu = load_balance(rank, size, n_lines)
+        cc.comp['use_gpu'] = is_gpu
+        if is_gpu:
+            cc.comp['batch_size'] = cc.comp['batch_size_gpu']
+        else:
+            cc.comp['batch_size'] = cc.comp['batch_size_cpu']
 
 
     cc.file['frame'] = [frame_start, 
@@ -178,21 +182,13 @@ def spatial_decompose(comm, cold_config: ColdConfig, rank: int, no_load_balance:
                         cc.file['frame'][2], 
                         cc.file['frame'][3]]
     
-    print(rank, cc.file['frame'])
-
-    exit()
-
-    print(size, rank, cc.file['range'], cc.file['frame'], cc.scanpoint, cc.pointer, m, n)
-
-    valid_num_procs = (gr ** 2) * no 
-    if not no_rank_check and valid_num_procs != size:
-        raise ValueError(f"Incorrect number of procs assigned! Procs must equal gridsize^2 * scannumber. Num proces expected: {valid_num_procs}")
+    print(size, rank, cc.file['range'], cc.file['frame'], cc.scanpoint, cc.pointer)
     
     return cc
 
 def load_balance(rank, size, n_lines):
     GPU_PER_NODE = 4
-    GPU_CPU_RATIO = 5
+    GPU_CPU_RATIO = 4 # TODO: Tune this and proc count to not clobber GPU.
 
     # Divide vertically
     n_nodes = int(os.environ['NNODES']) 
@@ -204,7 +200,8 @@ def load_balance(rank, size, n_lines):
     lines_per_cpu = max(1, math.floor(n_lines / total_ratio))
 
     # If GPU rank
-    if rank % rank_per_node < GPU_PER_NODE:
+    is_gpu = rank % rank_per_node < GPU_PER_NODE
+    if is_gpu:
         node_idx, gpu_idx = divmod(rank, rank_per_node)
         gpu_rank = (node_idx * GPU_PER_NODE) + gpu_idx
 
@@ -224,7 +221,7 @@ def load_balance(rank, size, n_lines):
         frame_start = cpu_start + (cpu_rank * lines_per_cpu)
         frame_end = cpu_start + ((cpu_rank + 1) * lines_per_cpu)
     
-    return frame_start, frame_end
+    return frame_start, frame_end, is_gpu
 
 
 def process_cold(args, cold_config: ColdConfig, time_data: TimeData, rank: int) -> ColdResult:
@@ -239,7 +236,7 @@ def process_cold(args, cold_config: ColdConfig, time_data: TimeData, rank: int) 
     
     # Reconstruct
     cold.decode = time_wrap(cold.decode, time_data.times, 'cold_decode')
-    cr.pos, cr.sig, cr.scl = cold.decode(cr.data, cr.ind, cold_config.comp, cold_config.geo, cold_config.algo, debug=args.debug)
+    cr.pos, cr.sig, cr.scl = cold.decode(cr.data, cr.ind, cold_config.comp, cold_config.geo, cold_config.algo, debug=args.debug, use_gpu=cold_config.comp['use_gpu'])
 
     cold.resolve = time_wrap(cold.resolve, time_data.times, 'cold_resolve')
     cr.dep, cr.lau = cold.resolve(cr.data, cr.ind, cr.pos, cr.sig, cold_config.geo, cold_config.comp)
@@ -277,6 +274,8 @@ def write_recon_p2p(cold_config: ColdConfig, start_frame, cold_result: ColdResul
           Also could use parallel HDF5 for more speedup, likely a reduced set
           of write ranks.
     """
+    raise NotImplementedError('Needs refactor after load balancing. Also waiting for MPI fix')
+
     rank = comm.Get_rank()
     size = comm.Get_size()
 

@@ -71,12 +71,6 @@ def reconstruct_backup(base_path, scan_no, frame, im_num, all_dir):
                 dims[ds_path] = h5_f[ds_path].shape
                 avail_datasets.append(ds_path)
 
-    print('Constructing ind')
-    num_splits = int(math.sqrt(max_proc))
-    print(f'Calculated {num_splits} splits')
-
-    assert (im_dim % num_splits) == 0
-    
     reshapes = {}
     for ds_path in avail_datasets:
         if len(dims[ds_path]) == 1:
@@ -159,15 +153,28 @@ def recon_from_config(comm, config_fp, override_start=None):
                            im_num,
                            all_outs)
 
+def force_write_log(rank: int, msg: str) -> None:
+    """
+    Use this to force writes for debugging. PBS sometimes doesn't flush
+    std* outputs. MPI faults clobber greedy flushing of default python
+    logs.
+    """
+    with open(f'{rank}.log', 'a') as log_f:
+        log_f.write(f'{datetime.datetime.now()} | {msg}\n')
 
 if __name__ == '__main__':
     args = parse_args()
+
     if args.p is not None:
         recon_manual_from_config(args.config_fp, args.p, args.start_im)
     
     else:
         from mpi4py import MPI
         comm = MPI.COMM_WORLD
+
+        if comm.Get_rank() == 0:
+            force_write_log(0, 'Starting Recon')
+
         try:
             recon_from_config(comm, args.config_fp, args.start_im)
         except Exception as e:
@@ -177,3 +184,6 @@ if __name__ == '__main__':
                 err_f.write('Traceback: \n')
                 err_f.write(traceback.format_exc())
             comm.Abort(1) # Term run early to prevent hang.
+
+        if comm.Get_rank() == 0:
+            force_write_log(0, 'Ending Recon')

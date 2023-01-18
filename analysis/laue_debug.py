@@ -98,8 +98,7 @@ def make_paths(cold_config: ColdConfig, rank: int) -> OutDirs:
     """
     out_dirs = OutDirs
 
-    num_grid = cold_config.comp['gridsize'] ** 2
-    im_num = cold_config.comp['scanstart'] + (rank // num_grid)
+    im_num = cold_config.comp['scanstart'] 
     print(f"Rank {rank} processing IM: {im_num}")
 
     out_dirs.pfx = os.path.join(cold_config.file['output'], str(im_num))
