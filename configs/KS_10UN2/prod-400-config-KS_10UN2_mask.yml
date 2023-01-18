@@ -12,13 +12,12 @@ file:
         key: '/entry1/data/data'
 
 comp:
-    server: 'jax'
+    server: 'acc'
     scanstart: 0
-    scannumber: 400
-    use_gpu: true
-    batch_size: 8
+    scannumber: 1
+    batch_size_cpu: 8
+    batch_size_gpu: 3000
     workers: 1
-    gridsize: 16
     h5parallel: False
     functionid: 'd8461388-9442-4008-a5f1-2cfa112f6923'
 

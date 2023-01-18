@@ -26,4 +26,3 @@ ${PYTHONPATH} \
 ../laue_parallel.py \
 ${CONFIG_PATH} \
 --start_im ${START_IM} \
---no_rank_check

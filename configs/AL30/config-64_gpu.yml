@@ -5,7 +5,7 @@ file:
     output: '../outputs/gpu_debug'
     range: [0, 401, 1]
     threshold: 0 # [readout values]
-    frame: [1000, 1128, 1000, 1128] # [pixels]
+    frame: [1000, 1510, 1000, 1512] # [pixels]
     ext: 'h5'
     stacked: True
     h5:
@@ -15,9 +15,9 @@ comp:
     server: 'jax'
     workers: 1
     scanstart: 1
-    batch_size: 3000
+    batch_size_gpu: 3000
+    batch_size_cpu: 8
     scannumber: 1
-    gridsize: 4
     functionid: 'd8461388-9442-4008-a5f1-2cfa112f6923'
 
 geo:

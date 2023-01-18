@@ -9,6 +9,7 @@ from mpi4py import MPI
 import datetime
 import argparse
 import dataclasses
+import math
 import copy
 import pickle
 
@@ -49,9 +50,9 @@ def parse_args():
         help='Activate cprofile for the 0th rank',
     )
     parser.add_argument(
-        '--no_rank_check',
+        '--no_load_balance',
         action='store_true',
-        help='Debug feature to ignore the check for number of ranks',
+        help='Disable GPU/CPU load balancing.',
     )
     return parser.parse_args()
 
@@ -139,7 +140,7 @@ def make_paths(cold_config: ColdConfig, rank: int) -> OutDirs:
     return out_dirs
 
 
-def spatial_decompose(comm, cold_config: ColdConfig, rank: int, no_rank_check: bool) -> ColdConfig:
+def spatial_decompose(comm, cold_config: ColdConfig, rank: int, no_load_balance: bool) -> ColdConfig:
     """
     Perform the calculations to determine what area of the image a single the
     process should perform calculations on. 
@@ -147,7 +148,8 @@ def spatial_decompose(comm, cold_config: ColdConfig, rank: int, no_rank_check: b
     Returns: 
         cc: a copy of the cold config with the parameters set for the individual
             process 
-    """
+    """     
+
     cc = copy.deepcopy(cold_config)
 
     no = 1 # TODO: Develop parallel runs in the same job
@@ -158,16 +160,27 @@ def spatial_decompose(comm, cold_config: ColdConfig, rank: int, no_rank_check: b
     cc.scanpoint, cc.pointer = np.divmod(rank, size // no)
     m, n = np.divmod(cc.pointer % (gr ** 2), gr)
 
-    chunkm = np.divide(cc.file['frame'][1] - cc.file['frame'][0], gr)
-    chunkn = np.divide(cc.file['frame'][3] - cc.file['frame'][2], gr)
     cc.file['range'] = [int((cc.comp['scanstart'] + cc.scanpoint) * cc.file['range'][1]), 
                                  int((cc.comp['scanstart'] + cc.scanpoint + 1) * cc.file['range'][1]), 
                                  1]
 
-    cc.file['frame'] = [int(cc.file['frame'][0] + m * chunkm), 
-                                 int(cc.file['frame'][0] + (m + 1) * chunkm), 
-                                 int(cc.file['frame'][2] + n * chunkn), 
-                                 int(cc.file['frame'][2] + (n + 1) * chunkm)]
+    n_lines = cc.file['frame'][1] - cc.file['frame'][0]
+    if no_load_balance:
+        proc_lines, rem = divmod(n_lines, size)
+        frame_start = rank * proc_lines + min(rank, rem)
+        frame_end = (rank + 1) * proc_lines + min(rank + 1, rem)
+    else:
+        frame_start, frame_end = load_balance(rank, size, n_lines)
+
+
+    cc.file['frame'] = [frame_start, 
+                        frame_end, 
+                        cc.file['frame'][2], 
+                        cc.file['frame'][3]]
+    
+    print(rank, cc.file['frame'])
+
+    exit()
 
     print(size, rank, cc.file['range'], cc.file['frame'], cc.scanpoint, cc.pointer, m, n)
 
@@ -176,6 +189,42 @@ def spatial_decompose(comm, cold_config: ColdConfig, rank: int, no_rank_check: b
         raise ValueError(f"Incorrect number of procs assigned! Procs must equal gridsize^2 * scannumber. Num proces expected: {valid_num_procs}")
     
     return cc
+
+def load_balance(rank, size, n_lines):
+    GPU_PER_NODE = 4
+    GPU_CPU_RATIO = 5
+
+    # Divide vertically
+    n_nodes = int(os.environ['NNODES']) 
+    n_gpu = n_nodes * GPU_PER_NODE
+    n_cpu = size - n_gpu
+    rank_per_node = int(size / n_nodes)
+
+    total_ratio = n_gpu * GPU_CPU_RATIO + n_cpu
+    lines_per_cpu = max(1, math.floor(n_lines / total_ratio))
+
+    # If GPU rank
+    if rank % rank_per_node < GPU_PER_NODE:
+        node_idx, gpu_idx = divmod(rank, rank_per_node)
+        gpu_rank = (node_idx * GPU_PER_NODE) + gpu_idx
+
+        all_gpu_lines = n_lines - lines_per_cpu * n_cpu
+        gpu_lines, rem = divmod(all_gpu_lines, n_gpu)
+
+        frame_start = gpu_rank * gpu_lines + min(gpu_rank, rem)
+        frame_end = (gpu_rank + 1) * gpu_lines + min(gpu_rank + 1, rem)
+
+    else:
+        node_idx, cpu_idx = divmod(rank, rank_per_node)
+        cpu_per_node = int(size / n_nodes) - GPU_PER_NODE
+        cpu_rank = (node_idx * cpu_per_node) + (cpu_idx - GPU_PER_NODE)
+
+        cpu_start = n_lines - (lines_per_cpu * n_cpu)
+
+        frame_start = cpu_start + (cpu_rank * lines_per_cpu)
+        frame_end = cpu_start + ((cpu_rank + 1) * lines_per_cpu)
+    
+    return frame_start, frame_end
 
 
 def process_cold(args, cold_config: ColdConfig, time_data: TimeData, rank: int) -> ColdResult:
@@ -307,11 +356,6 @@ def parallel_laue(comm, args):
 
     cold_config = ColdConfig(*cold.config(args.config_path))
 
-    if ('CUDA_VISIBLE_DEVICES' not in os.environ 
-         or os.environ['CUDA_VISIBLE_DEVICES'] == ""
-         or os.environ['CUDA_VISIBLE_DEVICES'] == "N"):
-        print(f'R: {rank} overriding batch size to 8')
-        cold_config.comp['batch_size'] = 8
  
     im_start = cold_config.comp['scanstart']
     if args.start_im is not None:
@@ -327,7 +371,7 @@ def parallel_laue(comm, args):
         time_data = TimeData()
         time_data.setup_start = datetime.datetime.now()
 
-        cold_config = spatial_decompose(comm, cold_config, rank, args.no_rank_check)
+        cold_config = spatial_decompose(comm, cold_config, rank, args.no_load_balance)
 
         out_dirs = make_paths(cold_config, rank)
         comm.Barrier()

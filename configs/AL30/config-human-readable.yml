@@ -14,7 +14,6 @@ file:
 comp:
     server: 'jax'
     scannumber: 1
-    gridsize: 3
     workers: 1
     h5parallel: true
     functionid: 'd8461388-9442-4008-a5f1-2cfa112f6923'
