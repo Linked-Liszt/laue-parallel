@@ -274,8 +274,6 @@ def write_recon_p2p(cold_config: ColdConfig, start_frame, cold_result: ColdResul
           Also could use parallel HDF5 for more speedup, likely a reduced set
           of write ranks.
     """
-    raise NotImplementedError('Needs refactor after load balancing. Also waiting for MPI fix')
-
     rank = comm.Get_rank()
     size = comm.Get_size()
 
@@ -287,7 +285,7 @@ def write_recon_p2p(cold_config: ColdConfig, start_frame, cold_result: ColdResul
         comm.send(cold_result, dest=0)
 
     else:
-        dims, reshapes = build_recon_metadata(cold_config, cold_result)
+        dims, reshapes = build_recon_metadata(cold_config, cold_result, start_frame)
         fill_reshapes(cold_result, start_frame, reshapes, dims)
         for recv_rank in range(1, size):
             recv_result = comm.recv(source=recv_rank)
@@ -318,12 +316,12 @@ def fill_reshapes(cold_result, start_frame, reshapes, dims):
                 reshapes[ds_path][:, ind[0], ind[1]] = ds[j]
 
 
-def build_recon_metadata(cold_config, cold_result):
+def build_recon_metadata(cold_config, cold_result, start_frame):
     dims = {}
     for ds_path in OUT_DSETS:
         dims[ds_path] = cold_result[ds_path].shape
 
-    im_dim = (cold_config.file['frame'][1] - cold_config.file['frame'][0]) * cold_config.comp['gridsize']
+    im_dim = (start_frame[1] - start_frame[0]) 
 
     reshapes = {}
     for ds_path in OUT_DSETS:

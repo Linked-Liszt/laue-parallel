@@ -3,6 +3,8 @@ tifffile
 opencv-python
 netCDF4
 astropy
+scikit-image
+matplotlib
 
 # System Specific
 # mpi4py
