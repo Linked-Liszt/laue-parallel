@@ -4,8 +4,15 @@ START_IM=0
 PROJ_NAME=hdf5_bench
 
 AFFINITY_PATH=../runscripts/set_gpu_affinity.sh
-PYTHONPATH=/eagle/projects/APSDataAnalysis/mprince/lau_env_polaris/bin/python 
 CONFIG_PATH=../configs/AL30/config-full.yml
+
+if [ -z ${PYTHONPATH+x} ]; 
+then 
+    echo "PYTHONPATH is not set. No job was queued."; 
+    exit 1
+else 
+    echo "Using Python path '${PYTHONPATH}'"; 
+fi
 
 echo "
 cd \${PBS_O_WORKDIR}

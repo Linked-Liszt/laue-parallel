@@ -1,5 +1,12 @@
 #!/bin/bash
-PYTHONPATH=/eagle/projects/APSDataAnalysis/mprince/lau_env_polaris/bin/python 
+if [ -z ${PYTHONPATH+x} ]; 
+then 
+    echo "PYTHONPATH is not set. No job was queued."; 
+    exit 1
+else 
+    echo "Using Python path '${PYTHONPATH}'"; 
+fi
+
 CONFIG_PATH=../configs/AL30/config-64_gpu.yml
 START_IM=0
 
@@ -14,15 +21,18 @@ then
     export CUDA_VISIBLE_DEVICES=$gpu
     export NSYS_ENV=CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES}
     echo “RANK= ${PMI_RANK} LOCAL_RANK= ${PMI_LOCAL_RANK} gpu= ${gpu}”
+    nsys profile -o laue_${PMI_RANK} \
+    -e  ${NSYS_ENV} \
+    ${PYTHONPATH} \
+    ../laue_parallel.py \
+    ${CONFIG_PATH} \
+    --start_im ${START_IM} 
 else
     export CUDA_VISIBLE_DEVICES=N
     export NSYS_ENV=CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES}
     echo “RANK= ${PMI_RANK} LOCAL_RANK= ${PMI_LOCAL_RANK} NO GPU”
+    ${PYTHONPATH} \
+    ../laue_parallel.py \
+    ${CONFIG_PATH} \
+    --start_im ${START_IM} 
 fi
-
-nsys profile -o laue_${PMI_RANK} \
--e  ${NSYS_ENV} \
-${PYTHONPATH} \
-../laue_parallel.py \
-${CONFIG_PATH} \
---start_im ${START_IM} \

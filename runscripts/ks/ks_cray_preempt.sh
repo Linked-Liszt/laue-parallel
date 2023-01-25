@@ -52,7 +52,7 @@ mpiexec -n \${NTOTRANKS} --ppn \${NRANKS_PER_NODE} --depth=\${NDEPTH} --cpu-bind
 qsub -A APSDataAnalysis \
 -q ${QUEUE} \
 -l select=${NUM_NODES}:system=polaris \
--l walltime=3:00:00 \
+-l walltime=24:00:00 \
 -l filesystems=home:eagle \
 -l place=scatter \
 -N ${PROJ_NAME} 

@@ -4,8 +4,15 @@ START_IM=0
 PROJ_NAME=ks_timing_test
 
 AFFINITY_PATH=../runscripts/set_gpu_affinity.sh
-PYTHONPATH=/eagle/projects/APSDataAnalysis/mprince/lau_env_polaris/bin/python 
 CONFIG_PATH=../configs/KS_10UN2/prod-config-KS_10UN2_mask.yml
+
+if [ -z ${PYTHONPATH+x} ]; 
+then 
+    echo "PYTHONPATH is not set. No job was queued."; 
+    exit 1
+else 
+    echo "Using Python path '${PYTHONPATH}'"; 
+fi
 
 echo "
 cd \${PBS_O_WORKDIR}

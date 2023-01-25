@@ -1,12 +1,19 @@
 NUM_NODES=10
 RANKS_PER_NODE=32
 START_IM=1
-PROJ_NAME=laue_al_rerun
+PROJ_NAME=laue_al
 QUEUE=preemptable
 
 AFFINITY_PATH=../runscripts/set_gpu_affinity.sh
-PYTHONPATH=/eagle/projects/APSDataAnalysis/mprince/lau_env_polaris/bin/python 
 CONFIG_PATH=../configs/AL30/config-full.yml
+
+if [ -z ${PYTHONPATH+x} ]; 
+then 
+    echo "PYTHONPATH is not set. No job was queued."; 
+    exit 1
+else 
+    echo "Using Python path '${PYTHONPATH}'"; 
+fi
 
 echo "
 cd \${PBS_O_WORKDIR}

@@ -16,7 +16,7 @@ comp:
     scanstart: 0
     batch_size_gpu: 3000
     batch_size_cpu: 8
-    scannumber: 21
+    scannumber: 1
     workers: 1
     h5parallel: False
     functionid: 'd8461388-9442-4008-a5f1-2cfa112f6923'

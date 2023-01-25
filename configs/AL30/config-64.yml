@@ -5,7 +5,7 @@ file:
     output: '../outputs/debug_al'
     range: [0, 401, 1]
     threshold: 0 # [readout values]
-    frame: [1000, 1512, 1000, 1512] # [pixels]
+    frame: [1000, 1512, 0, 2048] # [pixels]
     ext: 'h5'
     stacked: True
     h5:

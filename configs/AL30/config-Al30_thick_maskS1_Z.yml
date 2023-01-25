@@ -12,7 +12,7 @@ file:
         key: '/entry1/data/data'
 
 comp:
-    server: 'jax'
+    server: 'acc'
     scannumber: 1
     workers: 1
     functionid: 'd8461388-9442-4008-a5f1-2cfa112f6923'

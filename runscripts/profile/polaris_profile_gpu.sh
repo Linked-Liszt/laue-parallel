@@ -1,13 +1,20 @@
 #!/bin/bash
 NUM_NODES=1
-RANKS_PER_NODE=1
+RANKS_PER_NODE=32
 START_IM=0
 PROJ_NAME=laue_gpu_profile
 
 AFFINITY_PATH=../runscripts/set_gpu_affinity.sh
-PYTHONPATH=/eagle/projects/APSDataAnalysis/mprince/lau_env_polaris/bin/python 
 CONFIG_PATH=../configs/AL30/config-64_gpu.yml
 PROFILE_PATH=../runscripts/profile/polaris_profile_exec.sh
+
+if [ -z ${PYTHONPATH+x} ]; 
+then 
+    echo "PYTHONPATH is not set. No job was queued."; 
+    exit 1
+else 
+    echo "Using Python path '${PYTHONPATH}'"; 
+fi
 
 echo "
 cd \${PBS_O_WORKDIR}

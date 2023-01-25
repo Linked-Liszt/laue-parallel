@@ -1,18 +1,12 @@
-NUM_NODES=2
-RANKS_PER_NODE=8
+NUM_NODES=10
+RANKS_PER_NODE=32
 START_IM=0
-PROJ_NAME=laue_al_prod
+PROJ_NAME=ks_run_baseline
+QUEUE=preemptable
 
 AFFINITY_PATH=../runscripts/set_gpu_affinity.sh
-CONFIG_PATH=../configs/KS_10UN2/config-KS_10UN2_mask.yml
-
-if [ -z ${PYTHONPATH+x} ]; 
-then 
-    echo "PYTHONPATH is not set. No job was queued."; 
-    exit 1
-else 
-    echo "Using Python path '${PYTHONPATH}'"; 
-fi
+PYTHONPATH=/eagle/projects/APSDataAnalysis/mprince/lau_env_polaris/bin/python 
+CONFIG_PATH=../configs/KS_10UN2/baseline.yml
 
 echo "
 cd \${PBS_O_WORKDIR}
@@ -32,19 +26,19 @@ mpiexec -n \${NTOTRANKS} --ppn \${NRANKS_PER_NODE} --depth=\${NDEPTH} --cpu-bind
     ../laue_parallel.py \\
     ${CONFIG_PATH} \\
     --start_im ${START_IM} \\
-    --ignore
 
-mpiexec -n \${NTOTRANKS} --ppn \${NRANKS_PER_NODE} --depth=\${NDEPTH} --env NNODES=\${NNODES} --cpu-bind depth --env OMP_NUM_THREADS=\${NTHREADS} -env OMP_PLACES=threads \\
+mpiexec -n \${NNODES} --ppn 2 --depth=\${NDEPTH} --cpu-bind depth --env NNODES=\${NNODES}  --env OMP_NUM_THREADS=\${NTHREADS} -env OMP_PLACES=threads \\
     ${AFFINITY_PATH} \\
     ${PYTHONPATH} \\
-    ../recon_mpi.py \\
+    ../recon_parallel.py \\
     ${CONFIG_PATH} \\
     --start_im ${START_IM} \\
+
 " | \
 qsub -A APSDataAnalysis \
--q debug \
+-q ${QUEUE} \
 -l select=${NUM_NODES}:system=polaris \
--l walltime=1:00:00 \
+-l walltime=12:00:00 \
 -l filesystems=home:eagle \
 -l place=scatter \
 -N ${PROJ_NAME} 

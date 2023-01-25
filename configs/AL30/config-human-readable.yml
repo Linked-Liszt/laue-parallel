@@ -12,7 +12,7 @@ file:
         key: '/entry1/data/data'
 
 comp:
-    server: 'jax'
+    server: 'acc'
     scannumber: 1
     workers: 1
     h5parallel: true
