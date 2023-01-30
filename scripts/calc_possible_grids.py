@@ -10,7 +10,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('config_fp')
     parser.add_argument('--n',
-                        default=16,
+                        default=32,
                         type=int,
                         help='number of processes per node')
     parser.add_argument('--max',

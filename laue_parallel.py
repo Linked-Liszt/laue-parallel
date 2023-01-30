@@ -54,6 +54,16 @@ def parse_args():
         action='store_true',
         help='Disable GPU/CPU load balancing.',
     )
+    parser.add_argument(
+        '--override_input',
+        type=str,
+        help='Override the input directory',
+    )
+    parser.add_argument(
+        '--override_output',
+        type=str,
+        help='Override the output directory',
+    )
     return parser.parse_args()
 
 
@@ -188,7 +198,7 @@ def spatial_decompose(comm, cold_config: ColdConfig, rank: int, no_load_balance:
 
 def load_balance(rank, size, n_lines):
     GPU_PER_NODE = 4
-    GPU_CPU_RATIO = 4 # TODO: Tune this and proc count to not clobber GPU.
+    GPU_CPU_RATIO = 2 # TODO: Tune this and proc count to not clobber GPU.
 
     # Divide vertically
     n_nodes = int(os.environ['NNODES']) 
@@ -224,12 +234,15 @@ def load_balance(rank, size, n_lines):
     return frame_start, frame_end, is_gpu
 
 
-def process_cold(args, cold_config: ColdConfig, time_data: TimeData, rank: int) -> ColdResult:
+def process_cold(args, cold_config: ColdConfig, time_data: TimeData, start_range: list, rank: int) -> ColdResult:
     """
     Performs the image stack calculations via the cold library. 
     """
 
     cr = ColdResult()
+
+    if not cold_config.file['stacked']:
+        cold_config.file['range'] = start_range
 
     cold.load = time_wrap(cold.load, time_data.times, 'cold_load')
     cr.data, cr.ind = cold.load(cold_config.file)
@@ -344,6 +357,7 @@ def write_time(out_dirs: OutDirs, time_data: TimeData, rank: int) -> None:
             json.dump(time_data.times, time_f)
     print(time_data.times)
 
+
 def parallel_laue(comm, args):
     """
     Main script function to set up output, spatially decompose, compute cold
@@ -357,6 +371,15 @@ def parallel_laue(comm, args):
     im_start = cold_config.comp['scanstart']
     if args.start_im is not None:
         im_start = args.start_im
+
+    if args.override_input is not None:
+        cold_config.file['path'] = args.override_input
+    
+    if args.override_input is not None:
+        cold_config.file['output'] = args.override_input
+
+    if rank == 0:
+        force_write_log(rank, cold_config.file['path'])
 
     start_range = cold_config.file['range']
     start_frame = cold_config.file['frame']
@@ -381,7 +404,7 @@ def parallel_laue(comm, args):
         if args.dry_run:
             exit()
 
-        cold_result = process_cold(args, cold_config, time_data, rank)
+        cold_result = process_cold(args, cold_config, time_data, start_range, rank)
 
         time_data.write_start = datetime.datetime.now()
         write_output(cold_config, out_dirs, cold_result, rank)

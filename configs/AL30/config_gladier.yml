@@ -1,24 +1,23 @@
 ver: 1.0
 
 file:
-    path: /eagle/APSDataAnalysis/mprince/lau/data/KS_10UN2_mask
-    output: '../outputs/output_debug'
-    range: [0, 201, 1]
+    path: '/eagle/APSDataAnalysis/mprince/lau/data/al_full_stacked'
+    output: '/eagle/APSDataAnalysis/Laue/results/al_debug'
+    range: [0, 401, 1]
     threshold: 0 # [readout values]
-    frame: [580, 596, 580, 596] # [pixels]
+    frame: [1000, 1128, 0, 2048] # [pixels]
     ext: 'h5'
-    stacked: True
+    stacked: False
     h5:
-        key: '/entry1/data/data'
+        key: 'data'
 
 comp:
     server: 'acc'
-    scanstart: 0
-    scannumber: 50
-    batch_size_cpu: 8
-    batch_size_gpu: 3000
     workers: 1
-    h5parallel: False
+    scanstart: 1
+    batch_size_cpu: 64
+    batch_size_gpu: 3000
+    scannumber: 1
     functionid: 'd8461388-9442-4008-a5f1-2cfa112f6923'
 
 geo:
@@ -35,18 +34,18 @@ geo:
 
         focus:
             cenx: -0.97533203
-            dist: 5.87
+            dist: 0.61900000
             cenz: -0.17089844
             anglex: -0.06152344
             angley: -0.68076172
             anglez: -1.28115234
 
         calibrate: 
-            dist: [5.8, 6.1, 0.01] # [mm]
+            dist: [0.61, 0.63, 0.001] # [mm] 0.619
 
     scanner:
         angle: 0
-        step: 1 # [mu]
+        step: 0.5 # [mu]
         rot: [0.0045, -0.00684, -3.375e-5]
         axis: [1, 0, 0]
 
@@ -58,7 +57,7 @@ geo:
 
     source: 
         offset: 0
-        grid: [-1.45, -1.15, 0.001] # [mm]
+        grid: [-1.25, -0.85, 0.001] # [mm]
 
 algo:
     iter: 1
@@ -72,6 +71,6 @@ algo:
         order: 5
         scale: 1
         init:
-            maxsize: 180 
-            avgsize: 30
+            maxsize: 128 
+            avgsize: 16
             atol: 4

@@ -3,7 +3,7 @@ import argparse
 import numpy as np
 import h5py
 
-paths = ['pos']
+paths = ['lau']
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -43,6 +43,8 @@ def comp_h5_files(h5_fp_1, h5_fp_2):
             for i in range(len(diffs[0])):
                 print(f'{diffs[0][i]}, {diffs[1][i]}')
                 print(f'{ds_1[diffs[0][i], diffs[1][i]]} | {ds_2[diffs[0][i], diffs[1][i]]}')
+            
+                input()
 
         if len(ds_1.shape) == 1:
             print(f'Total Diffs {len(diffs)}))')

@@ -7,7 +7,8 @@ import cold
 import shutil
 import datetime
 
-DATASETS = ['lau', 'pos', 'sig', 'ind']
+#DATASETS = ['lau', 'pos', 'sig', 'ind']
+DATASETS = ['lau', 'pos']
 IND_PATH = 'ind'
 PROC_OUT_DIR = 'proc_results'
 RECON_OUT_DIR = 'recon'
@@ -29,6 +30,10 @@ def parse_args():
         '--start_im',
         type=int,
         help='Specify a start image through command line.'
+    )
+    parser.add_argument(
+        '--override_dir',
+        help='Override config dir'
     )
     return parser.parse_args()
 
@@ -129,10 +134,12 @@ def recon_manual_from_config(config_fp, path_override, override_start=None):
                         scan_start,
                         all_outs)
 
-def recon_from_config(comm, config_fp, override_start=None):
+def recon_from_config(comm, config_fp, override_start=None, override_dir=None):
     mpi_rank = comm.Get_rank()
     conf_file, conf_comp, conf_geo, conf_algo = cold.config(config_fp)
 
+    if override_dir is not None:
+        conf_file['output'] = override_dir
 
     base_path = conf_file['output']
     all_outs = os.path.join(conf_file['output'], ALL_OUTS)
@@ -176,7 +183,7 @@ if __name__ == '__main__':
             force_write_log(0, 'Starting Recon')
 
         try:
-            recon_from_config(comm, args.config_fp, args.start_im)
+            recon_from_config(comm, args.config_fp, args.start_im, args.override_dir)
         except Exception as e:
             import traceback
             with open('err_recon.log', 'a+') as err_f:

@@ -12,7 +12,7 @@ file:
         key: '/entry1/data/data'
 
 comp:
-    server: 'jax'
+    server: 'acc'
     workers: 1
     scanstart: 1
     batch_size_cpu: 64
