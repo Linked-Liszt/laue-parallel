@@ -376,10 +376,7 @@ def parallel_laue(comm, args):
         cold_config.file['path'] = args.override_input
     
     if args.override_input is not None:
-        cold_config.file['output'] = args.override_input
-
-    if rank == 0:
-        force_write_log(rank, cold_config.file['path'])
+        cold_config.file['output'] = args.override_output
 
     start_range = cold_config.file['range']
     start_frame = cold_config.file['frame']
