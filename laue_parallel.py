@@ -64,12 +64,19 @@ def parse_args():
         type=str,
         help='Override the output directory',
     )
+    parser.add_argument(
+        '--prod_output',
+        action='store_true',
+        help='Enable separated debug and prod outputs.',
+    )
     return parser.parse_args()
 
 
 @dataclasses.dataclass
 class OutDirs():
     pfx: str = None
+    pfx_prod: str = None
+    prod_proc_results: str = None
     time: str = None
     config: str = None
     proc_results: str = None
@@ -104,7 +111,14 @@ class ColdResult():
     def __getitem__(self, item):
         return getattr(self, item)
 
-OUT_DSETS = ['pos', 'sig', 'ind', 'lau']
+OUT_DEBUG_DSETS = ['pos', 'sig', 'ind', 'lau']
+OUT_DSETS = ['lau', 'ind']
+OUT_DTYPES= {
+    'pos': 'int32',
+    'ind': 'int32',
+    'sig': 'float32',
+    'lau': 'float32'
+}
 
 def time_wrap(func, time_data: dict, time_key: str):
     """
@@ -119,7 +133,7 @@ def time_wrap(func, time_data: dict, time_key: str):
     return wrap
 
 
-def make_paths(cold_config: ColdConfig, rank: int) -> OutDirs:
+def make_paths(cold_config: ColdConfig, rank: int, prod_output: bool) -> OutDirs:
     """
     Make the necessary output directories for processes to dump
     results into.  
@@ -129,7 +143,21 @@ def make_paths(cold_config: ColdConfig, rank: int) -> OutDirs:
     im_num = cold_config.comp['scanstart'] 
     print(f"Rank {rank} processing IM: {im_num}")
 
-    out_dirs.pfx = os.path.join(cold_config.file['output'], str(im_num))
+    if prod_output:
+        out_dirs.pfx_prod =cold_config.file['output']
+        out_dirs.prod_proc_results = os.path.join(out_dirs.pfx_prod, 'proc_results')
+        if rank == 0:
+            if not os.path.exists(out_dirs.pfx_prod):
+                os.makedirs(out_dirs.pfx_prod)
+
+        if rank == 0:
+            if not os.path.exists(out_dirs.prod_proc_results):
+                os.makedirs(out_dirs.prod_proc_results)
+
+        out_dirs.pfx = f"{cold_config.file['output']}_debug"
+    else:
+        out_dirs.pfx = os.path.join(cold_config.file['output'], str(im_num))
+
 
     out_dirs.time = os.path.join(out_dirs.pfx, 'time_logs')
     if rank == 0:
@@ -259,7 +287,7 @@ def process_cold(args, cold_config: ColdConfig, time_data: TimeData, start_range
     return cr
 
 
-def write_output(cold_config: ColdConfig, out_dirs: OutDirs, cold_result: ColdResult, rank: int) -> None:
+def write_output(cold_config: ColdConfig, out_dirs: OutDirs, cold_result: ColdResult, rank: int, prod_output: bool) -> None:
     """
     Takes the output from cold processing and writes to a file. Currently, each process dumps its individual 
     output into a h5 file which is then reconstructed by a script. 
@@ -273,8 +301,14 @@ def write_output(cold_config: ColdConfig, out_dirs: OutDirs, cold_result: ColdRe
     """
     with h5py.File(os.path.join(out_dirs.proc_results, f'{cold_config.pointer}.hd5'), 'w') as hf:
         for dset in OUT_DSETS:
-            hf.create_dataset(dset, data=cold_result[dset])
+            hf.create_dataset(dset, data=cold_result[dset], dtype=OUT_DTYPES[dset])
         hf.create_dataset('frame', data=cold_config.file['frame'])
+
+    if prod_output:
+        with h5py.File(os.path.join(out_dirs.prod_proc_results, f'{cold_config.pointer}.hd5'), 'w') as hf:
+            for dset in OUT_DSETS:
+                hf.create_dataset(dset, data=cold_result[dset], dtype=OUT_DTYPES[dset])
+            hf.create_dataset('frame', data=cold_config.file['frame'])
     print(f'Proc {rank} finished backup')
 
 
@@ -390,7 +424,7 @@ def parallel_laue(comm, args):
 
         cold_config = spatial_decompose(comm, cold_config, rank, args.no_load_balance)
 
-        out_dirs = make_paths(cold_config, rank)
+        out_dirs = make_paths(cold_config, rank, args.prod_output)
         comm.Barrier()
 
         with open(os.path.join(out_dirs.config, f'{rank}.pkl'), 'wb') as conf_f:
@@ -404,7 +438,7 @@ def parallel_laue(comm, args):
         cold_result = process_cold(args, cold_config, time_data, start_range, rank)
 
         time_data.write_start = datetime.datetime.now()
-        write_output(cold_config, out_dirs, cold_result, rank)
+        write_output(cold_config, out_dirs, cold_result, rank, args.prod_output)
 
         if args.mpi_recon:
             write_recon_p2p(cold_config, start_frame, cold_result, comm)
@@ -414,6 +448,8 @@ def parallel_laue(comm, args):
         # Copy config to output
         if rank == 0:
             shutil.copy2(args.config_path, out_dirs.pfx)
+            if args.prod_output:
+                shutil.copy2(args.config_path, out_dirs.pfx_prod)
         
 
 def force_write_log(rank: int, msg: str) -> None:
