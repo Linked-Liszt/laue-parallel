@@ -104,17 +104,17 @@ def make_paths(cold_config: ColdConfig, rank: int) -> OutDirs:
     out_dirs.pfx = os.path.join(cold_config.file['output'], str(im_num))
 
     out_dirs.time = os.path.join(out_dirs.pfx, 'time_logs')
-    if rank % num_grid == 0:
+    if rank == 0:
         if not os.path.exists(out_dirs.time):
             os.makedirs(out_dirs.time)
     
     out_dirs.proc_results = os.path.join(out_dirs.pfx, 'proc_results')
-    if rank % num_grid == 0:
+    if rank == 0:
         if not os.path.exists(out_dirs.proc_results):
             os.makedirs(out_dirs.proc_results)
 
     out_dirs.config = os.path.join(out_dirs.pfx, 'configs')
-    if rank % num_grid == 0:
+    if rank == 0:
         if not os.path.exists(out_dirs.config):
             os.makedirs(out_dirs.config)
     
@@ -160,19 +160,22 @@ def spatial_decompose(comm, cold_config: ColdConfig, rank: int) -> ColdConfig:
     return cc
 
 
-def process_cold(args, cold_config: ColdConfig, time_data: TimeData, rank: int) -> ColdResult:
+def process_cold(args, cold_config: ColdConfig, time_data: TimeData, start_range: list, rank: int) -> ColdResult:
     """
     Performs the image stack calculations via the cold library. 
     """
 
     cr = ColdResult()
 
+    if not cold_config.file['stacked']:
+        cold_config.file['range'] = start_range
+
     cold.load = time_wrap(cold.load, time_data.times, 'cold_load')
     cr.data, cr.ind = cold.load(cold_config.file)
     
     # Reconstruct
     cold.decode = time_wrap(cold.decode, time_data.times, 'cold_decode')
-    cr.pos, cr.sig, cr.scl = cold.decode(cr.data, cr.ind, cold_config.comp, cold_config.geo, cold_config.algo, debug=args.debug)
+    cr.pos, cr.sig, cr.scl = cold.decode(cr.data, cr.ind, cold_config.comp, cold_config.geo, cold_config.algo, debug=args.debug, use_gpu=cold_config.comp['use_gpu'])
 
     cold.resolve = time_wrap(cold.resolve, time_data.times, 'cold_resolve')
     cr.dep, cr.lau = cold.resolve(cr.data, cr.ind, cr.pos, cr.sig, cold_config.geo, cold_config.comp)
@@ -180,7 +183,6 @@ def process_cold(args, cold_config: ColdConfig, time_data: TimeData, rank: int) 
     print(rank, cr.lau.shape, cr.ind.shape, cr.pos.shape, cr.sig.shape, cr.dep.shape, cold_config.file['frame'], cold_config.file['frame'])
 
     return cr
-
 
 def write_output(cold_config: ColdConfig, out_dirs: OutDirs, cold_result: ColdResult, rank: int) -> None:
     """
@@ -239,7 +241,9 @@ def parallel_laue(comm, args):
     """
     out_dirs = make_paths(cold_config, rank)
 
-    cold_result = process_cold(args, cold_config, time_data, rank)
+    start_range = cold_config.file['range']
+
+    cold_result = process_cold(args, cold_config, time_data, start_range, rank)
 
     write_output(cold_config, out_dirs, cold_result, rank)
     """
