@@ -1,0 +1,7 @@
+The convert_laue_results.py script uses environment variables:
+DATA_DIR - a directory with the results from laue_parallel processing
+OUT_DIR - a directory where results will be saved
+ATTR_FILE - a file in yaml format with attributes
+
+Run command:
+python convert_laue_results.py
