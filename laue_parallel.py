@@ -300,7 +300,7 @@ def write_output(cold_config: ColdConfig, out_dirs: OutDirs, cold_result: ColdRe
           across multiple nodes.
     """
     with h5py.File(os.path.join(out_dirs.proc_results, f'{cold_config.pointer}.hd5'), 'w') as hf:
-        for dset in OUT_DSETS:
+        for dset in OUT_DEBUG_DSETS:
             hf.create_dataset(dset, data=cold_result[dset], dtype=OUT_DTYPES[dset])
         hf.create_dataset('frame', data=cold_config.file['frame'])
 
