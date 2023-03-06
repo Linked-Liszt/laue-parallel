@@ -27,18 +27,13 @@ def parse_args():
         help='path override for manual running'
     )
     parser.add_argument(
-        '--start_im',
-        type=int,
-        help='Specify a start image through command line.'
-    )
-    parser.add_argument(
         '--override_dir',
         help='Override config dir'
     )
     return parser.parse_args()
 
 
-def reconstruct_backup(base_path, scan_no, frame, im_num, all_dir):
+def reconstruct_backup(base_path, scan_no, frame, im_id, all_dir):
     start_time = datetime.datetime.now()
     dim_y = frame[1] - frame[0]
     dim_x = frame[3] - frame[2]
@@ -48,15 +43,15 @@ def reconstruct_backup(base_path, scan_no, frame, im_num, all_dir):
         raise NotImplementedError("Can only reconstruct square images!")
 
     max_proc = -1
-    print(f'Rank {scan_no} processing im {im_num}')
-    if not os.path.exists(os.path.join(base_path, str(im_num))):
+    print(f'Rank {scan_no} processing im {im_id}')
+    if not os.path.exists(os.path.join(base_path, str(im_id))):
         return 
 
-    backup_dir = os.path.join(base_path, str(im_num), PROC_OUT_DIR)
+    backup_dir = os.path.join(base_path, str(im_id), PROC_OUT_DIR)
     if not os.path.exists(backup_dir):
         os.makedirs(backup_dir)
 
-    out_dir = os.path.join(base_path, str(im_num), RECON_OUT_DIR)
+    out_dir = os.path.join(base_path, str(im_id), RECON_OUT_DIR)
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
@@ -108,21 +103,13 @@ def reconstruct_backup(base_path, scan_no, frame, im_num, all_dir):
 
     write_time = datetime.datetime.now()
     print('Writing out')
-    with h5py.File(os.path.join(out_dir, f'im_{im_num}_r{scan_no}.hd5'), 'w') as h5_f_out:
+    with h5py.File(os.path.join(all_dir, f'{im_id}.h5'), 'w') as h5_f_out:
         for ds_path in avail_datasets:
             h5_f_out.create_dataset(ds_path, data=reshapes[ds_path])
 
-    shutil.copy2(os.path.join(out_dir, f'im_{im_num}_r{scan_no}.hd5'), os.path.join(all_dir, f'im_{im_num}_r{scan_no}.hd5'))
 
-def recon_manual_from_config(config_fp, path_override, override_start=None):
-    conf_file, conf_comp, conf_geo, conf_algo = cold.config(config_fp)
-
-    if override_start is None:
-        scan_start = conf_comp['scanstart']
-    else:
-        scan_start = override_start
-
-    base_path = path_override
+def recon_manual_from_config(config_fp, path_override):
+    base_path, scan_id = os.path.split(path_override)
     all_outs = os.path.join(base_path, ALL_OUTS)
 
     if not os.path.exists(all_outs):
@@ -130,26 +117,21 @@ def recon_manual_from_config(config_fp, path_override, override_start=None):
 
     reconstruct_backup(base_path, 
                         0,
-                        conf_file['frame'],
-                        scan_start,
+                        0,
+                        scan_id,
                         all_outs)
 
-def recon_from_config(comm, config_fp, override_start=None, override_dir=None):
+def recon_from_config(comm, base_path, override_start=None, override_dir=None):
+    raise NotImplementedError #TODO: MPI Queue
     mpi_rank = comm.Get_rank()
-    conf_file, conf_comp, conf_geo, conf_algo = cold.config(config_fp)
 
-    if override_dir is not None:
-        conf_file['output'] = override_dir
-
-    base_path = conf_file['output']
-    all_outs = os.path.join(conf_file['output'], ALL_OUTS)
+    all_outs = os.path.join(base_path, ALL_OUTS)
 
     if mpi_rank == 0:
         if not os.path.exists(all_outs):
             os.makedirs(all_outs)
     comm.Barrier()
 
-    im_num = mpi_rank + conf_comp['scanstart']
     if override_start is not None:
         im_num = mpi_rank + override_start
 
