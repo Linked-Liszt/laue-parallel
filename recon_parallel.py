@@ -6,6 +6,7 @@ import math
 import cold
 import shutil
 import datetime
+import glob
 
 #DATASETS = ['lau', 'pos', 'sig', 'ind']
 DATASETS = ['lau', 'pos']
@@ -19,16 +20,8 @@ def parse_args():
         description='Script to reconstruct output from the proc dumps in a run.'
     )
     parser.add_argument(
-        'config_fp',
-        help='path to the config used to create the run'
-    )
-    parser.add_argument(
         '--p',
         help='path override for manual running'
-    )
-    parser.add_argument(
-        '--override_dir',
-        help='Override config dir'
     )
     return parser.parse_args()
 
@@ -108,20 +101,24 @@ def reconstruct_backup(base_path, scan_no, frame, im_id, all_dir):
             h5_f_out.create_dataset(ds_path, data=reshapes[ds_path])
 
 
-def recon_manual_from_config(config_fp, path_override):
+def recon_manual_from_config(path_override):
     base_path, scan_id = os.path.split(path_override)
     all_outs = os.path.join(base_path, ALL_OUTS)
+
+    config_fp = glob.glob(os.path.join(base_path, '*.yml'))[0]
+
+    conf_file, conf_comp, conf_geo, conf_algo = cold.config(config_fp)
 
     if not os.path.exists(all_outs):
         os.makedirs(all_outs)
 
     reconstruct_backup(base_path, 
                         0,
-                        0,
+                        conf_file['frame'],
                         scan_id,
                         all_outs)
 
-def recon_from_config(comm, base_path, override_start=None, override_dir=None):
+def recon_from_config(comm, base_path, override_start=None):
     raise NotImplementedError #TODO: MPI Queue
     mpi_rank = comm.Get_rank()
 
@@ -155,7 +152,7 @@ if __name__ == '__main__':
     args = parse_args()
 
     if args.p is not None:
-        recon_manual_from_config(args.config_fp, args.p, args.start_im)
+        recon_manual_from_config(args.p)
     
     else:
         from mpi4py import MPI
@@ -165,7 +162,7 @@ if __name__ == '__main__':
             force_write_log(0, 'Starting Recon')
 
         try:
-            recon_from_config(comm, args.config_fp, args.start_im, args.override_dir)
+            recon_from_config(comm, args.override_dir)
         except Exception as e:
             import traceback
             with open('err_recon.log', 'a+') as err_f:
