@@ -10,6 +10,7 @@ import datetime
 import argparse
 import dataclasses
 import copy
+import shutil
 
 def parse_args():
     """
@@ -223,6 +224,9 @@ def parallel_laue(comm, args):
     if args.start_im is not None:
         cold_config.comp['scanstart'] = args.start_im
     
+    num_pix = (cold_config.file['frame'][1] - cold_config.file['frame'][0]) * (cold_config.file['frame'][3] - cold_config.file['frame'][2])
+    print(f'Number of Pixels {num_pix}')
+    
     time_data = TimeData()
     time_data.setup_start = datetime.datetime.now()
 
@@ -245,6 +249,9 @@ def parallel_laue(comm, args):
 
     cold_result = process_cold(args, cold_config, time_data, start_range, rank)
 
+    runtime = (datetime.datetime.now() - time_data.setup_start).total_seconds()
+    print(f'{runtime} (s) runtime')
+
     write_output(cold_config, out_dirs, cold_result, rank)
     """
     time_data.write_start = datetime.datetime.now()
@@ -252,8 +259,8 @@ def parallel_laue(comm, args):
 
     # Copy config to output
     if rank == 0:
-        shutil.copy2(args.config_path, out_dirs.pfx)
     """
+    shutil.copy2(args.config_path, out_dirs.pfx)
 
 
 if __name__ == '__main__':
