@@ -204,8 +204,8 @@ def spatial_decompose(comm, cold_config: ColdConfig, rank: int, no_load_balance:
         proc_lines, rem = divmod(n_lines, size)
         frame_start = rank * proc_lines + min(rank, rem)
         frame_end = (rank + 1) * proc_lines + min(rank + 1, rem)
-        cc.comp['batch_size'] = cc.comp['batch_size_cpu']
-        cc.comp['use_gpu'] = False
+        cc.comp['batch_size'] = cc.comp['batch_size_gpu']
+        cc.comp['use_gpu'] = True
     else:
         frame_start, frame_end, is_gpu = load_balance(rank, size, n_lines)
         cc.comp['use_gpu'] = is_gpu
