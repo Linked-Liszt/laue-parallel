@@ -1,11 +1,11 @@
-NUM_NODES=5
+NUM_NODES=1
 RANKS_PER_NODE=32
 INPUT_DIR=/eagle/APSDataAnalysis/LAUE/scans/consgeo_Ni2_10mN_125.h5
 OUTPUT_DIR=../outputs_scaling/${NUM_NODES}
 START_IM=0
 
 BASENAME=$(/usr/bin/basename ${INPUT_DIR})
-PROJ_NAME=laue_no_affinity_${NUM_NODES}
+PROJ_NAME=laue_1n_test
 
 AFFINITY_PATH=../runscripts/set_gpu_affinity.sh
 CONFIG_PATH=/eagle/APSDataAnalysis/mprince/lau/dev/laue-gladier/funcx_launch/launch_scripts/config_gladier_stack_temp.yml
