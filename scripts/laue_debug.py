@@ -77,6 +77,7 @@ class ColdResult():
     scl = None
     dep = None
     lau = None
+    ene = None
 
 
 def time_wrap(func, time_data: dict, time_key: str):
@@ -173,13 +174,16 @@ def process_cold(args, cold_config: ColdConfig, time_data: TimeData, start_range
 
     cold.load = time_wrap(cold.load, time_data.times, 'cold_load')
     cr.data, cr.ind = cold.load(cold_config.file)
+    print(f'Data Shape: {cr.data.shape}')
     
     # Reconstruct
     cold.decode = time_wrap(cold.decode, time_data.times, 'cold_decode')
-    cr.pos, cr.sig, cr.scl = cold.decode(cr.data, cr.ind, cold_config.comp, cold_config.geo, cold_config.algo, debug=args.debug, use_gpu=cold_config.comp['use_gpu'])
+    cr.pos, cr.sig, cr.scl, cr.ene = cold.decode(cr.data, cr.ind, cold_config.comp, cold_config.geo, cold_config.algo, debug=args.debug, use_gpu=cold_config.comp['use_gpu'])
+    #cr.pos, cr.sig, cr.scl, cr.ene = cold.decode(cr.data, cr.ind, cold_config.comp, cold_config.geo, cold_config.algo, debug=args.debug)
 
     cold.resolve = time_wrap(cold.resolve, time_data.times, 'cold_resolve')
-    cr.dep, cr.lau = cold.resolve(cr.data, cr.ind, cr.pos, cr.sig, cold_config.geo, cold_config.comp)
+    shift = 25 * cold_config.geo['scanner']['step'] * 1e-3
+    cr.dep, cr.lau = cold.resolve(cr.data, cr.ind, cr.pos, cr.sig, cold_config.geo, cold_config.comp, shift)
     
     print(rank, cr.lau.shape, cr.ind.shape, cr.pos.shape, cr.sig.shape, cr.dep.shape, cold_config.file['frame'], cold_config.file['frame'])
 
@@ -199,6 +203,7 @@ def write_output(cold_config: ColdConfig, out_dirs: OutDirs, cold_result: ColdRe
         hf.create_dataset('scl', data=cold_result.scl)
         hf.create_dataset('ind', data=cold_result.ind)
         hf.create_dataset('lau', data=cold_result.lau)
+        hf.create_dataset('ene', data=cold_result.ene)
         hf.create_dataset('frame', data=cold_config.file['frame'])
     print(f'Proc {rank} finished backup')
 
