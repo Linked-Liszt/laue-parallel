@@ -264,18 +264,32 @@ def load_balance(rank, size, n_lines):
     return frame_start, frame_end, is_gpu
 
 
-def process_cold(args, cold_config: ColdConfig, time_data: TimeData, start_range: list, rank: int) -> ColdResult:
+def load_distribute_thresh(comm, cc: ColdConfig, time_data: TimeData, start_range, rank: int) -> ColdResult:
+    cr = ColdResult()
+
+    size = comm.Get_size()
+
+    if not cc.file['stacked']:
+        cc.file['range'] = start_range
+
+    cold.load = time_wrap(cold.load, time_data.times, 'cold_load')
+    cr.data, cr.ind = cold.load(cc.file)
+
+    cr.data = np.array_split(cr.data, size)[rank]
+    cr.ind = np.array_split(cr.ind, size)[rank]
+
+    print(rank, f'Rank: {rank} processing {np.shape(cr.data)} pixels')
+
+    cc.comp['use_gpu'] = True
+
+    return cc, cr
+
+
+def process_cold(args, cr: ColdResult, cold_config: ColdConfig, time_data: TimeData, start_range: list, rank: int) -> ColdResult:
     """
     Performs the image stack calculations via the cold library. 
     """
 
-    cr = ColdResult()
-
-    if not cold_config.file['stacked']:
-        cold_config.file['range'] = start_range
-
-    cold.load = time_wrap(cold.load, time_data.times, 'cold_load')
-    cr.data, cr.ind = cold.load(cold_config.file)
     
     # Reconstruct
     cold.decode = time_wrap(cold.decode, time_data.times, 'cold_decode')
@@ -424,7 +438,8 @@ def parallel_laue(comm, args):
         time_data = TimeData()
         time_data.setup_start = datetime.datetime.now()
 
-        cold_config = spatial_decompose(comm, cold_config, rank, args.no_load_balance)
+        # TODO: Integrate Thresh into SD
+        #cold_config = spatial_decompose(comm, cold_config, rank, args.no_load_balance)
 
         out_dirs = make_paths(cold_config, rank, args.prod_output)
         comm.Barrier()
@@ -434,10 +449,12 @@ def parallel_laue(comm, args):
 
         time_data.setup = (datetime.datetime.now() - time_data.setup_start).total_seconds()
 
+        cold_config, cold_result = load_distribute_thresh(comm, cold_config, time_data, start_range, rank)
+
         if args.dry_run:
             exit()
 
-        cold_result = process_cold(args, cold_config, time_data, start_range, rank)
+        cold_result = process_cold(args, cold_result, cold_config, time_data, start_range, rank)
 
         time_data.write_start = datetime.datetime.now()
         write_output(cold_config, out_dirs, cold_result, rank, args.prod_output)

@@ -7,7 +7,7 @@
 .vscode
 runscripts_prod
 runscripts_temp
-output
+output*
 outputs*
 profiles
 
