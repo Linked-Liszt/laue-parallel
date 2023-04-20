@@ -35,13 +35,13 @@ geo:
         stretch: 1.0
         shift: 0.025
 
-        focus: 
-            cenx: 0.68586250435
-            dist: 1.95953437436
-            anglez: 43.72070312
-            angley: -0.56640625
-            anglex: 0.28515625
-            cenz: 0.34765625
+        focus:
+            cenx: 0.47683594
+            dist: 1.55317383
+            anglez: 43.53339844
+            angley: -0.40039062
+            anglex: 0.09570312
+            cenz: -0.12695312
 
         calibrate: 
             dist: [0.01, 0.01, 0.001] # [mm] 0.619

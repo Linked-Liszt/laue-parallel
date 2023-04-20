@@ -69,6 +69,11 @@ def parse_args():
         action='store_true',
         help='Enable separated debug and prod outputs.',
     )
+    parser.add_argument(
+        '--b',
+        action='store_true',
+        help='Enable batch processing of stacked files',
+    )
     return parser.parse_args()
 
 
@@ -267,6 +272,8 @@ def load_balance(rank, size, n_lines):
 def load_distribute_thresh(comm, cc: ColdConfig, time_data: TimeData, start_range, rank: int) -> ColdResult:
     cr = ColdResult()
 
+    cc.pointer = rank
+
     size = comm.Get_size()
 
     if not cc.file['stacked']:
@@ -430,10 +437,23 @@ def parallel_laue(comm, args):
 
     start_range = cold_config.file['range']
     start_frame = cold_config.file['frame']
-    for im_num in range(im_start, im_start + cold_config.comp['scannumber']):
-        cold_config.comp['scanstart'] = im_num
+
+    if args.b:
+        files = list(os.listdir(args.override_input))
+        # Extracts scan number seperated by '_' and sorts: myscan_[scan_no].h5
+        files = sorted(files, key=lambda x: '_'.split(os.path.splitext(x)[0])[-1])
+    else:
+        files = [cold_config.file['path']]
+
+    for input_file in files:
         cold_config.file['range'] = start_range
         cold_config.file['frame'] = start_frame
+
+        if args.b:
+            file_basename = os.path.splitext(input_file)[0]
+            cold_config.file['path'] = os.path.join(args.override_input, input_file)
+            cold_config.file['output'] = os.path.join(args.override_output, file_basename)
+
 
         time_data = TimeData()
         time_data.setup_start = datetime.datetime.now()
