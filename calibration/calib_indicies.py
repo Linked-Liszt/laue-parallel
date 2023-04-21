@@ -1,6 +1,6 @@
 import numpy as np
 
-CALIB_1 = np.array([
+CALIB_1 = np.asarray([
         [1618, 6],
         [396, 11], 
         [1766, 33], 
@@ -53,7 +53,7 @@ CALIB_1 = np.array([
         [1828, 1974]
         ])
 
-CALIB_2 = np.asarrray([[1618, 6],
+CALIB_2 = np.asarray([[1618, 6],
         [396, 11],
         [1766, 33],
         [156, 60],

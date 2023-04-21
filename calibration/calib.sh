@@ -3,7 +3,7 @@ RANKS_PER_NODE=5
 START_IM=0
 
 
-CWD=/eagle/APSDataAnalysis/mprince/lau/dev/calib
+CWD=/eagle/APSDataAnalysis/mprince/lau/dev/laue-parallel/calibration
 CONDA_PATH=/eagle/APSDataAnalysis/mprince/lau_env_polaris
 
 
@@ -32,13 +32,13 @@ NTHREADS=2
 NTOTRANKS=\$(( NNODES * NRANKS_PER_NODE ))
 echo \"NUM_OF_NODES= \${NNODES} TOTAL_NUM_RANKS= \${NTOTRANKS} RANKS_PER_NODE= \${NRANKS_PER_NODE} THREADS_PER_RANK= \${NTHREADS}\"
 
-python calibrate-Si_Norcada_90_calib1.py configs/config-calibrate1-1.yml configs/config-calibrate1-2.yml configs/config-calibrate1-3.yml configs/config-calibrate1-4.yml configs/config-calibrate1-5.yml
+python calibrate-autofocus.py $1 $2
 
 " | \
 qsub -A APSDataAnalysis \
 -q preemptable \
 -l select=${NUM_NODES}:system=polaris \
--l walltime=10:00:00 \
+-l walltime=12:00:00 \
 -l filesystems=home:eagle \
 -l place=scatter \
 -N ${PROJ_NAME} \

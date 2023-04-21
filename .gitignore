@@ -10,5 +10,6 @@ runscripts_temp
 output*
 outputs*
 profiles
+calibration/tmp
 
 logs*
