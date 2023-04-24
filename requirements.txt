@@ -4,6 +4,7 @@ opencv-python
 netCDF4
 astropy
 scikit-image
+xraydb
 matplotlib
 
 # System Specific
