@@ -13,3 +13,4 @@ profiles
 calibration/tmp
 
 logs*
+__pycache__
