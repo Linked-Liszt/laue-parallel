@@ -3,7 +3,7 @@ RANKS_PER_NODE=5
 START_IM=0
 
 
-CWD=/eagle/APSDataAnalysis/mprince/lau/dev/laue-parallel/calibration
+CWD=/eagle/APSDataAnalysis/mprince/lau/dev/laue-parallel/calibration/logs
 CONDA_PATH=/eagle/APSDataAnalysis/mprince/lau_env_polaris
 
 
@@ -32,7 +32,7 @@ NTHREADS=2
 NTOTRANKS=\$(( NNODES * NRANKS_PER_NODE ))
 echo \"NUM_OF_NODES= \${NNODES} TOTAL_NUM_RANKS= \${NTOTRANKS} RANKS_PER_NODE= \${NRANKS_PER_NODE} THREADS_PER_RANK= \${NTHREADS}\"
 
-python calibrate-autofocus.py $1 $2
+python ../calibrate-autofocus.py $1 $2
 
 " | \
 qsub -A APSDataAnalysis \
