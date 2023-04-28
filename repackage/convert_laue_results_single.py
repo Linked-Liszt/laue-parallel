@@ -127,15 +127,18 @@ def repackage_files(file_path, data_path, out_path, ptrepack_path, is_single_fol
     
     start_depth = config['geo']['source']['grid'][0] * 1000 # mm -> um
     step = config['geo']['source']['grid'][2] * 1000
+    default_depth = True
 
     lau_set = np.moveaxis(lau_set, 2, 0)
     #thresh = 15.0
     #lau_set = apply_mask(lau_set, parent_dir, thresh)
 
     output_params = []
+    print(new_dir)
+    print(attr_file)
     for i in range(stack):
         depth = start_depth + (step * i)
-        if depth >= -200.0 and depth <= 200.0:
+        if default_depth or (depth >= -200.0 and depth <= 200.0):
             output_params.append((lau_set[i, :, :], len(output_params), attr_file, new_dir, scannumber, depth))
 
     list(map(write_to_hd5, output_params))
