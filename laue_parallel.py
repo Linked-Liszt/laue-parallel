@@ -65,6 +65,11 @@ def parse_args():
         help='Override the output directory',
     )
     parser.add_argument(
+        '--mask',
+        type=str,
+        help='Path to the mask np array',
+    )
+    parser.add_argument(
         '--prod_output',
         action='store_true',
         help='Enable separated debug and prod outputs.',
@@ -270,6 +275,11 @@ def load_balance(rank, size, n_lines):
 
 
 def load_distribute_thresh(comm, cc: ColdConfig, time_data: TimeData, start_range, rank: int) -> ColdResult:
+    """
+    Performs load balancing based on the threshold of the config. 
+    Data is loaded and thresholded by each process, and each one independently 
+    
+    """
     cr = ColdResult()
 
     cc.pointer = rank
@@ -284,6 +294,39 @@ def load_distribute_thresh(comm, cc: ColdConfig, time_data: TimeData, start_rang
 
     cr.data = np.array_split(cr.data, size)[rank]
     cr.ind = np.array_split(cr.ind, size)[rank]
+
+    print(rank, f'Rank: {rank} processing {np.shape(cr.data)} pixels')
+
+    cc.comp['use_gpu'] = True
+
+    return cc, cr
+
+
+def load_distribute_mask(comm, cc: ColdConfig, time_data: TimeData, start_range, mask_fp, rank: int) -> ColdResult:
+    cr = ColdResult()
+    mask = np.load(mask_fp).astype(int)
+
+    cc.pointer = rank
+    size = comm.Get_size()
+
+    if not cc.file['stacked']:
+        cc.file['range'] = start_range
+
+    cold.load = time_wrap(cold.load, time_data.times, 'cold_load')
+    cr.data, cr.ind = cold.load(cc.file, collapsed=False)
+
+    num_px = np.count_nonzero(mask)
+    mask_data = np.zeros((num_px, cr.data.shape[2]))
+    mask_ind = np.zeros((num_px, cr.ind.shape[1]))
+
+    xs, ys = np.nonzero(mask)
+    for i, (x, y) in enumerate(zip(xs, ys)):
+        mask_data[i] = cr.data[x, y]
+        mask_ind[i] = np.asarray([x, y])
+
+
+    cr.data = np.array_split(mask_data, size)[rank]
+    cr.ind = np.array_split(mask_ind, size)[rank]
 
     print(rank, f'Rank: {rank} processing {np.shape(cr.data)} pixels')
 
@@ -469,7 +512,8 @@ def parallel_laue(comm, args):
 
         time_data.setup = (datetime.datetime.now() - time_data.setup_start).total_seconds()
 
-        cold_config, cold_result = load_distribute_thresh(comm, cold_config, time_data, start_range, rank)
+        #cold_config, cold_result = load_distribute_thresh(comm, cold_config, time_data, start_range, rank)
+        cold_config, cold_result = load_distribute_mask(comm, cold_config, time_data, start_range, args.mask, rank)
 
         if args.dry_run:
             exit()

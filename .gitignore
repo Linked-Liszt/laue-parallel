@@ -11,6 +11,7 @@ output*
 outputs*
 profiles
 calibration/tmp
+im_masks
 
 logs*
 __pycache__

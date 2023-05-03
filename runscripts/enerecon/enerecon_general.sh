@@ -9,6 +9,7 @@ PROJ_NAME=laue_enerecon
 
 AFFINITY_PATH=../runscripts/set_soft_affinity.sh
 CONFIG_PATH=$1
+MASK_PATH=$2
 
 
 echo "
@@ -37,6 +38,7 @@ mpiexec -n \${NTOTRANKS} --ppn \${NRANKS_PER_NODE} --depth=\${NDEPTH} --cpu-bind
     ${CONFIG_PATH} \\
     --start_im ${START_IM} \\
     --no_load_balance \\
+    --mask ${MASK_PATH} \\
     --prod_output
 
 " | \
