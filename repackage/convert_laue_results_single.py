@@ -34,22 +34,17 @@ def parse_args():
     return parser.parse_args()
 
 def process_chunk(args):
-    filename, lau_set, y_dim = args
-    f = h5py.File(filename, 'r')
-    frame = f['frame']
-    lau = f['lau']
-    ind = f['ind']
-    # adjust the index to the current frame and flatten it
-    new_ind = (ind[:, 0] - frame[0]) * y_dim + ind[:, 1]
-    # create a new ndarray that the laue will be expanded to according to index
-    lau_arr = np.zeros(((frame[1] - frame[0]) * (frame[3] - frame[2]), lau.shape[1]))
-    # fill out the laue values by index
-    lau_arr[new_ind] = lau
-    # reshape the array
-    lau_arr = np.reshape(lau_arr, ((frame[1] - frame[0]), (frame[3] - frame[2]), lau.shape[1]))
-    # write to the corresponding chunk of shared memory
-    lau_set[frame[0] : frame[1], :, :] = lau_arr
-    f.close()
+    in_f, output_arr = args
+    with h5py.File(in_f, 'r') as f:
+        frame = np.array(f['frame'])
+        laus = np.array(f['lau'])
+        inds = np.array(f['ind'])
+
+    inds[:,0] -= frame[0]
+    inds[:,1] -= frame[2]
+
+    for i, ind in enumerate(inds):
+        output_arr[ind[0], ind[1], :] = laus[i]
 
 def write_to_hd5(args):
     data, ind, attr_file, new_dir, scannumber, depth = args
@@ -117,7 +112,7 @@ def repackage_files(file_path, data_path, out_path, ptrepack_path, is_single_fol
 
     lau_set = np.ndarray((x_dim, y_dim, stack), dtype=float)
 
-    data_files_load = [(data_fp, lau_set, y_dim) for data_fp in data_files]
+    data_files_load = [(data_fp, lau_set) for data_fp in data_files]
 
     list(map(process_chunk, data_files_load))
 

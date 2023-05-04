@@ -1,15 +1,12 @@
 NUM_NODES=1
 RANKS_PER_NODE=11
 PROJ_NAME=laue-repack
-QUEUE=preemptable
-WALLTIME=05:00:00
+QUEUE=debug
+WALLTIME=01:00:00
 
 PYTHONPATH=/eagle/projects/APSDataAnalysis/mprince/lau_env_polaris/bin/python
-CWD=/eagle/APSDataAnalysis/mprince/lau/dev/laue-parallel/logs_norcada
 SCRIPT_PATH=/eagle/APSDataAnalysis/mprince/lau/dev/laue-parallel/repackage/repack_polaris.py
 
-
-cd ${CWD}
 
 echo "
 cd \${PBS_O_WORKDIR}
@@ -24,7 +21,7 @@ NTOTRANKS=\$(( NNODES * NRANKS_PER_NODE ))
 echo \"NUM_OF_NODES= \${NNODES} TOTAL_NUM_RANKS= \${NTOTRANKS} RANKS_PER_NODE= \${NRANKS_PER_NODE} THREADS_PER_RANK= \${NTHREADS}\"
 
 mpiexec -n \${NTOTRANKS} --ppn \${NRANKS_PER_NODE} --depth=\${NDEPTH} --cpu-bind depth --env NNODES=\${NNODES}  --env OMP_NUM_THREADS=\${NTHREADS} -env OMP_PLACES=threads \\
-    ${PYTHONPATH} ${SCRIPT_PATH} $@ 
+    ${PYTHONPATH} ${SCRIPT_PATH} $@  --s
 
 " | \
 qsub -A APSDataAnalysis \
