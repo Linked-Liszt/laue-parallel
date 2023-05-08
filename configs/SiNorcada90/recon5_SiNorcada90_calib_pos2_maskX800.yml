@@ -2,7 +2,7 @@ ver: 1.0
 
 file:
     path: '/local/laue_34ide/data/Si_Norcada_90_calib3_flyscans/SiNorcada90_calib_pos2_maskX800_1.h5'
-    output: 'outputs/norcada/recon_5'
+    output: '/local/laue_34ide/outputs/norcada/recon_5'
     range: [0, 541, 1]
     threshold: 0 # [readout values]
     frame: [0, 2048, 0, 2048] # [pixels] 

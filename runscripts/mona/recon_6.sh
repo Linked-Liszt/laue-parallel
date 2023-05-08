@@ -1,0 +1,1 @@
+ mpiexec --bind-to core -n 24 python ../laue_parallel.py ../configs/SiNorcada90/recon5_SiNorcada90_calib_pos2_maskX800.yml --start_im 0 --no_load_balance --mask ../recon_masks/0042_mask_calib3_maskX800_dataset42.npy --prod_output > run.log
