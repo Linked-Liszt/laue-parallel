@@ -482,7 +482,7 @@ def parallel_laue(comm, args):
     start_frame = cold_config.file['frame']
 
     if args.b:
-        files = list(os.listdir(args.override_input))
+        files = list(os.listdir(cold_config.file['path']))
         # Extracts scan number seperated by '_' and sorts: myscan_[scan_no].h5
         files = sorted(files, key=lambda x: '_'.split(os.path.splitext(x)[0])[-1])
     else:
@@ -494,8 +494,15 @@ def parallel_laue(comm, args):
 
         if args.b:
             file_basename = os.path.splitext(input_file)[0]
-            cold_config.file['path'] = os.path.join(args.override_input, input_file)
-            cold_config.file['output'] = os.path.join(args.override_output, file_basename)
+            input_path = cold_config.file['path']
+            output_path = cold_config.file['output']
+            if args.override_input is not None:
+                input_path = args.override_input
+            if args.override_output is not None:
+                output_path = args.override_output
+
+            cold_config.file['path'] = os.path.join(input_path, input_file)
+            cold_config.file['output'] = os.path.join(output_path, file_basename)
 
 
         time_data = TimeData()

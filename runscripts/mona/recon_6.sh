@@ -1,1 +1,4 @@
  mpiexec --bind-to core -n 24 python ../laue_parallel.py ../configs/SiNorcada90/recon5_SiNorcada90_calib_pos2_maskX800.yml --start_im 0 --no_load_balance --mask ../recon_masks/0042_mask_calib3_maskX800_dataset42.npy --prod_output > run.log
+ mpiexec --bind-to core -n 24 python ../laue_parallel.py ../configs/SiNorcada90/recon6_SiNorcada90_calib_pos2_maskX1800.yml --start_im 0 --no_load_balance --mask ../recon_masks/0042_mask_calib3_maskX800_dataset42.npy --prod_output > run2.log
+
+mpiexec --bind-to core -n 24 python ../laue_parallel.py ../configs/twin_pristine/recon_7_tp.yml --start_im 0 --no_load_balance --mask ../recon_masks/0024_mask_TwinPristine_d20_2023_05_09.npy --prod_output --b > run_twin.log
