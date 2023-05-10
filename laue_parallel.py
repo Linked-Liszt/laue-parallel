@@ -480,6 +480,8 @@ def parallel_laue(comm, args):
 
     start_range = cold_config.file['range']
     start_frame = cold_config.file['frame']
+    start_in_path = cold_config.file['path']
+    start_out_path = cold_config.file['output']
 
     if args.b:
         files = list(os.listdir(cold_config.file['path']))
@@ -494,8 +496,8 @@ def parallel_laue(comm, args):
 
         if args.b:
             file_basename = os.path.splitext(input_file)[0]
-            input_path = cold_config.file['path']
-            output_path = cold_config.file['output']
+            input_path = start_in_path
+            output_path = start_out_path
             if args.override_input is not None:
                 input_path = args.override_input
             if args.override_output is not None:
@@ -512,6 +514,9 @@ def parallel_laue(comm, args):
         #cold_config = spatial_decompose(comm, cold_config, rank, args.no_load_balance)
 
         out_dirs = make_paths(cold_config, rank, args.prod_output)
+        if rank == 0:
+            shutil.copy(cold_config.file['path'], out_dirs.pfx_prod)
+
         comm.Barrier()
 
         with open(os.path.join(out_dirs.config, f'{rank}.pkl'), 'wb') as conf_f:
