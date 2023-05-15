@@ -117,19 +117,21 @@ class ColdResult():
     lau = None
     frame = None
     ele = None
+    pathlen = None
 
     # Allow for easy iteration 
     def __getitem__(self, item):
         return getattr(self, item)
 
-OUT_DEBUG_DSETS = ['pos', 'sig', 'ind', 'lau', 'ene']
+OUT_DEBUG_DSETS = ['pos', 'sig', 'ind', 'lau', 'ene', 'pathlen']
 OUT_DSETS = ['lau', 'ind']
 OUT_DTYPES= {
     'pos': 'int32',
     'ind': 'int32',
     'sig': 'float32',
     'lau': 'float32',
-    'ene': 'float32'
+    'ene': 'float32',
+    'pathlen': 'float32',
 }
 
 def time_wrap(func, time_data: dict, time_key: str):
@@ -343,7 +345,7 @@ def process_cold(args, cr: ColdResult, cold_config: ColdConfig, time_data: TimeD
     
     # Reconstruct
     cold.decode = time_wrap(cold.decode, time_data.times, 'cold_decode')
-    cr.pos, cr.sig, cr.scl, cr.ene = cold.decode(cr.data, cr.ind, cold_config.comp, cold_config.geo, cold_config.algo, debug=args.debug)
+    cr.pos, cr.sig, cr.scl, cr.ene, cr.pathlen = cold.decode(cr.data, cr.ind, cold_config.comp, cold_config.geo, cold_config.algo, debug=args.debug)
 
     cold.resolve = time_wrap(cold.resolve, time_data.times, 'cold_resolve')
     cr.dep, cr.lau = cold.resolve(cr.data, cr.ind, cr.pos, cr.sig, cold_config.geo, cold_config.comp)
