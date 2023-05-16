@@ -9,7 +9,7 @@ import datetime
 import glob
 
 #DATASETS = ['lau', 'pos', 'sig', 'ind']
-DATASETS = ['lau', 'pos']
+DATASETS = ['ene', 'pathlen']
 IND_PATH = 'ind'
 PROC_OUT_DIR = 'proc_results'
 RECON_OUT_DIR = 'recon'
@@ -26,7 +26,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def reconstruct_backup(base_path, scan_no, frame, im_id, all_dir):
+def reconstruct_backup(in_dir, out_dir, frame, im_id, all_dir, rank):
     start_time = datetime.datetime.now()
     dim_y = frame[1] - frame[0]
     dim_x = frame[3] - frame[2]
@@ -36,7 +36,7 @@ def reconstruct_backup(base_path, scan_no, frame, im_id, all_dir):
         raise NotImplementedError("Can only reconstruct square images!")
 
     max_proc = -1
-    print(f'Rank {scan_no} processing im {im_id}')
+    print(f'Rank {i} processing im {im_id}')
     if not os.path.exists(os.path.join(base_path, str(im_id))):
         return 
 
