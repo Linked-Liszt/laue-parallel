@@ -1,18 +1,16 @@
-NUM_NODES=1
+NUM_NODES=10
 RANKS_PER_NODE=32
 START_IM=0
 
+echo $1
 
 CWD=/eagle/APSDataAnalysis/mprince/lau/dev/laue-parallel/logs_enerecon
 CONDA_PATH=/eagle/APSDataAnalysis/mprince/lau_env_polaris
 
-INPUT_DIR=/eagle/APSDataAnalysis/mprince/lau/data/twin_pristine/Twin_pristine_1.h5
-OUTPUT_DIR=../output_enrecon/enrecon
-
-PROJ_NAME=laue_enerecon
+PROJ_NAME=laue_twin_pristine_$1
 
 AFFINITY_PATH=../runscripts/set_soft_affinity.sh
-CONFIG_PATH=../configs/enerecon/twin_pristine.yml
+CONFIG_PATH=../configs/twin_pristine/recon_10/recon_10_tp_$1.yml
 
 mkdir -p ${CWD}
 cd ${CWD}
@@ -41,17 +39,17 @@ mpiexec -n \${NTOTRANKS} --ppn \${NRANKS_PER_NODE} --depth=\${NDEPTH} --cpu-bind
     python \\
     ../laue_parallel.py \\
     ${CONFIG_PATH} \\
-    --override_input ${INPUT_DIR} \\
-    --override_output ${OUTPUT_DIR} \\
     --start_im ${START_IM} \\
     --no_load_balance \\
+    --mask /eagle/APSDataAnalysis/mprince/lau/dev/laue-parallel/im_masks/0024_mask2_forpolaris_TwinPristine_d20_2023_05_16.npy \\
+    --b \\
     --prod_output
 
 " | \
 qsub -A APSDataAnalysis \
--q debug \
+-q preemptable \
 -l select=${NUM_NODES}:system=polaris \
--l walltime=01:00:00 \
+-l walltime=24:00:00 \
 -l filesystems=home:eagle \
 -l place=scatter \
 -N ${PROJ_NAME} \
