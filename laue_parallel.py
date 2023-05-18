@@ -488,7 +488,7 @@ def parallel_laue(comm, args):
     if args.b:
         files = list(os.listdir(cold_config.file['path']))
         # Extracts scan number seperated by '_' and sorts: myscan_[scan_no].h5
-        files = sorted(files, key=lambda x: '_'.split(os.path.splitext(x)[0])[-1])
+        files = sorted(files, key=lambda x: int('_'.split(os.path.splitext(x)[0])[-1]))
     else:
         files = [cold_config.file['path']]
 
