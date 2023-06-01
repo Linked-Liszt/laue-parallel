@@ -40,11 +40,6 @@ def parse_args():
         help='Enable reconstruction of individual proc data over MPI'
     )
     parser.add_argument(
-        '--start_im',
-        type=int,
-        help='Specify a start image through command line.'
-    )
-    parser.add_argument(
         '--profile',
         action='store_true',
         help='Activate cprofile for the 0th rank',
@@ -469,11 +464,6 @@ def parallel_laue(comm, args):
 
     cold_config = ColdConfig(*cold.config(args.config_path))
 
- 
-    im_start = cold_config.comp['scanstart']
-    if args.start_im is not None:
-        im_start = args.start_im
-
     if args.override_input is not None:
         cold_config.file['path'] = args.override_input
     
@@ -488,7 +478,7 @@ def parallel_laue(comm, args):
     if args.b:
         files = list(os.listdir(cold_config.file['path']))
         # Extracts scan number seperated by '_' and sorts: myscan_[scan_no].h5
-        files = sorted(files, key=lambda x: int('_'.split(os.path.splitext(x)[0])[-1]))
+        files = sorted(files, key=lambda x: int(x.split('_')[-1].split('.')[0]))
     else:
         files = [cold_config.file['path']]
 
