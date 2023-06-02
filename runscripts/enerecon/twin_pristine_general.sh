@@ -1,4 +1,4 @@
-NUM_NODES=10
+NUM_NODES=5
 RANKS_PER_NODE=32
 START_IM=0
 
@@ -7,10 +7,10 @@ echo $1
 CWD=/eagle/APSDataAnalysis/mprince/lau/dev/laue-parallel/logs_enerecon
 CONDA_PATH=/eagle/APSDataAnalysis/mprince/lau_env_polaris
 
-PROJ_NAME=laue_twin_pristine_$1
+PROJ_NAME=laue_twin_pristine_14
 
 AFFINITY_PATH=../runscripts/set_soft_affinity.sh
-CONFIG_PATH=../configs/twin_pristine/recon_10/recon_10_tp_$1.yml
+CONFIG_PATH=$1
 
 mkdir -p ${CWD}
 cd ${CWD}
