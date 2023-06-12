@@ -517,7 +517,11 @@ def parallel_laue(comm, args):
         time_data.setup = (datetime.datetime.now() - time_data.setup_start).total_seconds()
 
         #cold_config, cold_result = load_distribute_thresh(comm, cold_config, time_data, start_range, rank)
-        cold_config, cold_result = load_distribute_mask(comm, cold_config, time_data, start_range, args.mask, rank)
+        if 'pixmask' in cold_config.file:
+            pix_mask = cold_config.file['pixmask']
+        else:
+            pix_mask = args.mask
+        cold_config, cold_result = load_distribute_mask(comm, cold_config, time_data, start_range, pix_mask, rank)
 
         if args.dry_run:
             exit()
