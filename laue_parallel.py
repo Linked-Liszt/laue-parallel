@@ -507,7 +507,11 @@ def parallel_laue(comm, args):
 
         out_dirs = make_paths(cold_config, rank, args.prod_output)
         if rank == 0:
-            shutil.copy(cold_config.file['path'], out_dirs.pfx_prod)
+            if os.path.isdir(cold_config.file['path']):
+                base_file = os.path.join(cold_config.file['path'], os.listdir(cold_config.file['path'])[0])
+            else:
+                base_file = cold_config.file['path']
+            shutil.copy(base_file, out_dirs.pfx_prod)
 
         comm.Barrier()
 
