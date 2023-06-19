@@ -46,7 +46,7 @@ def main(path1, path2, debug=False):
         geo['mask']['focus']['anglex'] = vals[4]
         geo['mask']['focus']['cenz'] = vals[5]
 
-        pos, sig, scl, ene = cold.decode(dat, ind, comp, geo, algo)
+        pos, sig, scl, ene, pathlen = cold.decode(dat, ind, comp, geo, algo)
         dep, lau = cold.resolve(dat, ind, pos, sig, geo, comp)
 
         # Weights based on squared intensity
@@ -88,7 +88,7 @@ def main(path1, path2, debug=False):
 
         return costs
     
-    indices = calib_indicies.CALIB_3_X1800
+    indices = calib_indicies.CALIB_3_X1800_NO_TOPRIGHT 
 
 
     # Load calibration datasets
@@ -127,7 +127,7 @@ def main(path1, path2, debug=False):
     # Search regions
     lbound = np.array([0.4, 1.4, 42.35, -2, -2, -2]) 
     ubound = np.array([0.5, 1.7, 44.35,  2,  2,  2])
-    mpoint = 0.5 * (lbound + ubound)
+    mpoint = [0.443310547, 1.60405273, 43.3119141, -0.662109375, -0.001953125, 0.935546875]
 
     # Parameter init
     vl = mpoint.copy()
