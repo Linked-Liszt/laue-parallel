@@ -336,7 +336,7 @@ def process_cold(args, cr: ColdResult, cold_config: ColdConfig, time_data: TimeD
     """
     Performs the image stack calculations via the cold library. 
     """
-
+    cold.reset_mask_cache(True, True)
     
     # Reconstruct
     cold.decode = time_wrap(cold.decode, time_data.times, 'cold_decode')

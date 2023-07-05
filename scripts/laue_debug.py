@@ -166,8 +166,11 @@ def process_cold(args, cold_config: ColdConfig, time_data: TimeData, start_range
     """
     Performs the image stack calculations via the cold library. 
     """
+    cold.reset_mask_cache(True, True)
 
     cr = ColdResult()
+    shift = 25 * cold_config.geo['scanner']['step'] * 1e-3
+    print(shift)
 
     if not cold_config.file['stacked']:
         cold_config.file['range'] = start_range
@@ -175,15 +178,21 @@ def process_cold(args, cold_config: ColdConfig, time_data: TimeData, start_range
     cold.load = time_wrap(cold.load, time_data.times, 'cold_load')
     cr.data, cr.ind = cold.load(cold_config.file)
     print(f'Data Shape: {cr.data.shape}')
+    print(f'Data Shape: {cr.ind.shape}')
+    num_px = 50
+    cr.data = cr.data[10000:10000 + num_px]
+    cr.ind = cr.ind[10000:10000 + num_px]
+    print(f'Data Shape: {cr.data.shape}')
+    print(f'Data Shape: {cr.ind.shape}')
+
     
     # Reconstruct
     cold.decode = time_wrap(cold.decode, time_data.times, 'cold_decode')
-    cr.pos, cr.sig, cr.scl, cr.ene = cold.decode(cr.data, cr.ind, cold_config.comp, cold_config.geo, cold_config.algo, debug=args.debug, use_gpu=cold_config.comp['use_gpu'])
-    #cr.pos, cr.sig, cr.scl, cr.ene = cold.decode(cr.data, cr.ind, cold_config.comp, cold_config.geo, cold_config.algo, debug=args.debug)
+    cr.pos, cr.sig, cr.scl, cr.ene, _ = cold.decode(cr.data, cr.ind, cold_config.comp, cold_config.geo, cold_config.algo, debug=args.debug)
+    #cr.pos, cr.sig, cr.scl, cr.ene  = cold.decode(cr.data, cr.ind, cold_config.comp, cold_config.geo, cold_config.algo, debug=args.debug)
 
     cold.resolve = time_wrap(cold.resolve, time_data.times, 'cold_resolve')
-    shift = 25 * cold_config.geo['scanner']['step'] * 1e-3
-    cr.dep, cr.lau = cold.resolve(cr.data, cr.ind, cr.pos, cr.sig, cold_config.geo, cold_config.comp, shift)
+    cr.dep, cr.lau = cold.resolve(cr.data, cr.ind, cr.pos, cr.sig, cold_config.geo, cold_config.comp)
     
     print(rank, cr.lau.shape, cr.ind.shape, cr.pos.shape, cr.sig.shape, cr.dep.shape, cold_config.file['frame'], cold_config.file['frame'])
 
