@@ -1,14 +1,14 @@
 ver: 1.0
 
 file:
-    path: '/local/laue34/data/Si_MaskZfly_1.h5'
-    output: '/local/laue34/outputs/recon_20'
+    path: '/local/laue34/data/Si_MaskZ_step'
+    output: '/local/laue34/outputs/recon_21'
     pixmask: '../recon_masks/0042_mask_calib3_maskX800_dataset42.npy'
     range: [10, 701, 1]
     threshold: 0 # [readout values]
     frame: [0, 2048, 0, 2048] # [pixels] 
     ext: 'h5'
-    stacked: False
+    stacked: True
     h5:
         key: '/entry1/data/data'
 
