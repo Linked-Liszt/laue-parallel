@@ -2,7 +2,7 @@
 ver: 1.0
 
 file:
-    path: '/local/laue_34ide/data/calib3_x1800'
+    path: '/local/lau_34/data/Si_Norcada_90_calib3/'
     output: 'tmp/calibrate/recon-Si_Norcada_90_calib3_maskx1800'
     range: [240, 541, 1]
     threshold: 20 # [readout values]
@@ -19,7 +19,7 @@ comp:
 
 geo:
     mask: 
-        path: '../../cold/codes/code-debruijn-2-8-000.npy'
+        path: '../masks/code-debruijn-2-8-000.npy'
         reversed: False
         bitsizes: [15, 7.5] # [mu]
         thickness: 3.7 # [mu]

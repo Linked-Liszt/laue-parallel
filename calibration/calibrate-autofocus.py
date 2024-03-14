@@ -81,9 +81,16 @@ def main(path1, path2, debug=False):
             plt.title(str(vals), fontsize=7)
                 
             plt.subplots_adjust(left=0.05, right=0.95, bottom=0.04, top=0.97, hspace=2)
-            if not os.path.exists('tmp/' + geo['mask']['cal']['path'] + '/autofocus'):
-                os.makedirs('tmp/' + geo['mask']['cal']['path'] + '/autofocus')
-            plt.savefig('tmp/' + geo['mask']['cal']['path'] + '/autofocus/autofocus-' + str(a) + '-' + str(geo['mask']['cal']['id']) + '.png', dpi=300)
+            pathname = 'tmp/' + geo['mask']['cal']['path'] + '/autofocus'
+            if not os.path.exists(pathname):
+                os.makedirs(pathname)
+            
+            runinfo = str(a) + '-' + str(geo['mask']['cal']['id'])
+            plt.savefig(pathname + '/autofocus-' + runinfo + '.png', dpi=300)
+            with open(pathname+'/costs.log','a+') as f:
+                f.write(runinfo+',')
+                f.write(str(costs)+',')
+                f.write(' '.join([str(i) for i in vals])+'\n')
             plt.close()
 
         return costs
@@ -127,7 +134,7 @@ def main(path1, path2, debug=False):
     # Search regions
     lbound = np.array([0.4, 1.4, 42.35, -2, -2, -2]) 
     ubound = np.array([0.5, 1.7, 44.35,  2,  2,  2])
-    mpoint = [0.443310547, 1.60405273, 43.3119141, -0.662109375, -0.001953125, 0.935546875]
+    mpoint = [0.443310547,1.60405273,43.3119141,-0.662109375,-0.001953125,0.935546875]
 
     # Parameter init
     vl = mpoint.copy()
