@@ -142,7 +142,7 @@ def time_wrap(func, time_data: dict, time_key: str):
     return wrap
 
 
-def make_paths(cold_config: ColdConfig, rank: int, prod_output: bool) -> OutDirs:
+def make_paths(cold_config: ColdConfig, rank: int, prod_output: bool, make_files: bool = True) -> OutDirs:
     """
     Make the necessary output directories for processes to dump
     results into.  
@@ -155,11 +155,11 @@ def make_paths(cold_config: ColdConfig, rank: int, prod_output: bool) -> OutDirs
     if prod_output:
         out_dirs.pfx_prod =cold_config.file['output']
         out_dirs.prod_proc_results = os.path.join(out_dirs.pfx_prod, 'proc_results')
-        if rank == 0:
+        if rank == 0 and make_files:
             if not os.path.exists(out_dirs.pfx_prod):
                 os.makedirs(out_dirs.pfx_prod)
 
-        if rank == 0:
+        if rank == 0 and make_files:
             if not os.path.exists(out_dirs.prod_proc_results):
                 os.makedirs(out_dirs.prod_proc_results)
 
@@ -169,17 +169,17 @@ def make_paths(cold_config: ColdConfig, rank: int, prod_output: bool) -> OutDirs
 
 
     out_dirs.time = os.path.join(out_dirs.pfx, 'time_logs')
-    if rank == 0:
+    if rank == 0 and make_files:
         if not os.path.exists(out_dirs.time):
             os.makedirs(out_dirs.time)
     
     out_dirs.proc_results = os.path.join(out_dirs.pfx, 'proc_results')
-    if rank == 0:
+    if rank == 0 and make_files:
         if not os.path.exists(out_dirs.proc_results):
             os.makedirs(out_dirs.proc_results)
 
     out_dirs.config = os.path.join(out_dirs.pfx, 'configs')
-    if rank == 0:
+    if rank == 0 and make_files:
         if not os.path.exists(out_dirs.config):
             os.makedirs(out_dirs.config)
     
@@ -455,6 +455,25 @@ def write_time(out_dirs: OutDirs, time_data: TimeData, rank: int) -> None:
     print(time_data.times)
 
 
+def filter_existing_outputs(files, cold_config, args):
+    files_todo = []
+
+    config = copy.deepcopy(cold_config) # safety
+    base_output_path = cold_config.file['output']
+
+    for file in files:
+        file_basename = os.path.splitext(file)[0]
+        config.file['output'] = os.path.join(base_output_path, file_basename)
+        dirs = make_paths(config, 0, args.prod_output, False)
+        if not os.path.exists(dirs.proc_results):
+            files_todo.append(file)
+        elif len(os.listdir(dirs.proc_results)) == 0:
+            files_todo.append(file)
+    
+    return files_todo
+
+
+
 def parallel_laue(comm, args):
     """
     Main script function to set up output, spatially decompose, compute cold
@@ -475,12 +494,17 @@ def parallel_laue(comm, args):
     start_in_path = cold_config.file['path']
     start_out_path = cold_config.file['output']
 
-    if args.b:
-        files = list(os.listdir(cold_config.file['path']))
-        # Extracts scan number seperated by '_' and sorts: myscan_[scan_no].h5
-        files = sorted(files, key=lambda x: int(x.split('_')[-1].split('.')[0]))
+    if rank == 0:
+        if args.b:
+            files = list(os.listdir(cold_config.file['path']))
+            # Extracts scan number seperated by '_' and sorts: myscan_[scan_no].h5
+            files = sorted(files, key=lambda x: int(x.split('_')[-1].split('.')[0]))
+        else:
+            files = [cold_config.file['path']]
+        files = filter_existing_outputs(files, cold_config, args)
     else:
-        files = [cold_config.file['path']]
+        files = None
+    files = comm.bcast(files, root=0)
 
     for input_file in files:
         cold_config.file['range'] = start_range
