@@ -2,6 +2,10 @@
 
 Scripts and surrounding infrastructure to run cold in parallel via spatial decomposition on the Polaris supercomputer. 
 
+Status: 34-IDE is under construction follwing the APS-U. Project will be updated once beamline is ready to gather data once again. 
+
+Paper: https://doi.org/10.1145/3624062.3624613
+
 ## Repository Organization
 
 * `laue_parallel.py` performs the parallel computation, and `recon_parallel.py` reconstructs the individual process outputs from the first script
